@@ -1,7 +1,7 @@
 import asyncio
 import httpx
 
-_RETRY_STATUSES = {429, 500, 502, 503}
+_RETRY_STATUSES = {500, 502, 503}
 _MAX_RETRIES = 3
 
 class HTTPStatusError(Exception):
@@ -12,6 +12,7 @@ class BaseHTTPClient:
         self._client = httpx.AsyncClient(**kwargs)
 
     async def get(self, url: str) -> httpx.Response:
+        response = None
         for attempt in range(_MAX_RETRIES):
             try:
                 response = await self._client.get(url)
@@ -30,7 +31,7 @@ class BaseHTTPClient:
                 return response
             except httpx.HTTPStatusError as exc:
                 raise HTTPStatusError(f"HTTP {response.status_code} for {url}") from exc
-        raise HTTPStatusError(f"Request to {url} failed after {_MAX_RETRIES} attempts")
+        raise HTTPStatusError(f"Request to {url} failed after {_MAX_RETRIES} attempts: {response}")
 
     async def aclose(self) -> None:
         await self._client.aclose()

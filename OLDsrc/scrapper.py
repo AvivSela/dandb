@@ -20,9 +20,7 @@ _PERIOD_MAP = {
     '1 Month': 'period_1_month',
     '3 Month': 'period_3_month',
     'YTD':     'ytd',
-    '1 Year':  'period_1_year',
-    '3 Year':  'period_3_year',
-    '5 Year':  'period_5_year',
+    '1 Year':  'period_1_year'
 }
 
 DEFAULT_REQUEST_HEADERS = {
@@ -43,8 +41,6 @@ class PerformanceMetrics:
     period_3_month: str
     ytd: str
     period_1_year: str
-    period_3_year: str
-    period_5_year: str
 
     @classmethod
     def from_dict(cls, data: dict[str, str]) -> "PerformanceMetrics":

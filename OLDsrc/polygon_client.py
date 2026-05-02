@@ -1,6 +1,8 @@
 import os
 from dataclasses import dataclass
 from datetime import date, timedelta
+
+from anyio.functools import lru_cache
 from dotenv import load_dotenv
 from urllib.parse import quote
 
@@ -78,9 +80,14 @@ class PolygonClient:
     async def get_daily_open_close(self, stock_symbol: str, trade_date: date | None = None) -> DailyOpenClose:
         if not stock_symbol or not stock_symbol.strip():
             raise PolygonValidationError("stock_symbol must be a non-empty string")
+        trade_date = self._format_trade_date(trade_date)
+        return await self._cacheable_request_for_open_close(stock_symbol, trade_date)
 
-        trade_date_string = self._format_trade_date(trade_date)
-        url = f"{self.BASE_URL}/v1/open-close/{quote(stock_symbol)}/{trade_date_string}"
+
+    @lru_cache(maxsize=1024)
+    async def _cacheable_request_for_open_close(self,stock_symbol: str, trade_date: str)-> DailyOpenClose:
+        print("cache miss !")
+        url = f"{self.BASE_URL}/v1/open-close/{quote(stock_symbol)}/{trade_date}"
 
         response = await self._client.get(url)
         try:
@@ -93,6 +100,8 @@ class PolygonClient:
             raise PolygonAPIError(f"Unexpected API status: {res.status}")
 
         return res
+
+
 
     @staticmethod
     def _format_trade_date(trade_date: date | None):

@@ -53,7 +53,7 @@ class MarketWatchScraper:
     def __init__(self, client: BaseHTTPClient | None = None, request_headers: dict | None = None, timeout: int = 10):
         self._client = client or BaseHTTPClient(
             headers=request_headers or DEFAULT_REQUEST_HEADERS,
-            timeout=10,
+            timeout=timeout,
 
         )
 
@@ -62,7 +62,6 @@ class MarketWatchScraper:
         logger.info("Fetching stock page for %s from %s", stock_symbol, url)
         try:
             response = await self._client.get(url)
-            response.raise_for_status()
         except HTTPStatusError as e:
             raise StockFetchError(f"Failed to fetch stock page for '{stock_symbol}': {e}") from e
         logger.debug("Received %d bytes for %s", len(response.text), stock_symbol)

@@ -22,7 +22,7 @@ class StockService:
             self.repository.get(normalized_symbol)
         )
 
-        return StockSummaryDomain(performance=metrics,daily_snapshot=daily_open_close, amount=amount)
+        return StockSummaryDomain(performance=metrics,daily_snapshot=daily_open_close, amount=amount or 0)
 
 
     async def post_stock_summary(self, symbol: str, amount: int) -> None:

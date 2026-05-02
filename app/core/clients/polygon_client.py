@@ -1,12 +1,14 @@
+import logging
 import os
 from dataclasses import dataclass
 from datetime import date, timedelta
-
-from anyio.functools import lru_cache
-from dotenv import load_dotenv
 from urllib.parse import quote
 
+from anyio.functools import lru_cache
+
 from app.core.clients.http_client import BaseHTTPClient, HTTPStatusError
+
+logger = logging.getLogger(__name__)
 
 
 class PolygonError(Exception):
@@ -57,11 +59,6 @@ class DailyOpenClose:
             pre_market=data.get("preMarket"),
         )
 
-# TODO:  Module-level side effect (src/polygon_client.py:6)
-#   load_dotenv() runs on every import. In production environments this can silently override already-set env vars (.env values take precedence unless override=False). Move it to __main__ entry points or the app startup path, not
-#   inside a library module.
-load_dotenv()
-
 
 class PolygonClient:
     BASE_URL = "https://api.polygon.io"
@@ -86,7 +83,7 @@ class PolygonClient:
 
     @lru_cache(maxsize=1024)
     async def _cacheable_request_for_open_close(self,stock_symbol: str, trade_date: str)-> DailyOpenClose:
-        print("cache miss !")
+        logger.debug("cache miss for %s %s", stock_symbol, trade_date)
         url = f"{self.BASE_URL}/v1/open-close/{quote(stock_symbol)}/{trade_date}"
 
         try:

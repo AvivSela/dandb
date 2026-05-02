@@ -1,7 +1,6 @@
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.api.v1.deps import get_stock_service
 from app.api.v1.endpoints import stocks  # Import your endpoint modules
 
 api_router = APIRouter()

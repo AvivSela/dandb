@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -11,7 +10,7 @@ class PostStockResponse(BaseModel):
 
     @classmethod
     def create_from(cls, symbol: str, amount: int):
-        return cls(message=f"{amount} units of stock {symbol.strip().upper()} were added to your stock record")
+        return cls(message=f"{amount} units of stock {symbol} were added to your stock record")
 
 
 class Performance(BaseModel):
@@ -57,6 +56,6 @@ class GetStockResponse(BaseModel):
     low: float
     close: float
     volume: int
-    after_hours: Optional[float] = Field(None, serialization_alias="afterHours")
-    pre_market: Optional[float] = Field(None, serialization_alias="preMarket")
+    after_hours: float | None = Field(None, serialization_alias="afterHours")
+    pre_market: float | None = Field(None, serialization_alias="preMarket")
     performance: Performance

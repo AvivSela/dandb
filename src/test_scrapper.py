@@ -1,7 +1,8 @@
 import pytest
-import requests
-from unittest.mock import patch, Mock
+import httpx
+from unittest.mock import AsyncMock, Mock
 from scrapper import MarketWatchScraper, PerformanceMetrics, StockFetchError, PerformanceDataParseError
+from http_client import BaseHTTPClient
 
 
 SAMPLE_HTML = """
@@ -57,25 +58,26 @@ SAMPLE_HTML = """
 
 
 @pytest.fixture
-def mock_session():
-    with patch('scrapper.requests.Session') as mock_session_class:
-        session = Mock()
-        mock_session_class.return_value = session
-        response = Mock()
-        response.text = SAMPLE_HTML
-        response.raise_for_status = Mock()
-        session.get.return_value = response
-        yield session
+def mock_client():
+    client = AsyncMock(spec=BaseHTTPClient)
+    response = Mock()
+    response.text = SAMPLE_HTML
+    response.status_code = 200
+    response.raise_for_status = Mock()
+    client.get = AsyncMock(return_value=response)
+    return client, response
 
 
 class TestMarketWatchScraper:
 
-    def test_returns_performance_metrics_instance(self, mock_session):
-        result = MarketWatchScraper().scrape_performance_metrics("WIX")
+    async def test_returns_performance_metrics_instance(self, mock_client):
+        client, _ = mock_client
+        result = await MarketWatchScraper(client=client).scrape_performance_metrics("WIX")
         assert isinstance(result, PerformanceMetrics)
 
-    def test_returns_correct_values(self, mock_session):
-        result = MarketWatchScraper().scrape_performance_metrics("WIX")
+    async def test_returns_correct_values(self, mock_client):
+        client, _ = mock_client
+        result = await MarketWatchScraper(client=client).scrape_performance_metrics("WIX")
         assert result.period_5_day == '5.48%'
         assert result.period_1_month == '11.72%'
         assert result.period_3_month == '-8.34%'
@@ -84,13 +86,14 @@ class TestMarketWatchScraper:
         assert result.period_3_year == '42.89%'
         assert result.period_5_year == '78.45%'
 
-    def test_calls_correct_url(self, mock_session):
-        MarketWatchScraper().scrape_performance_metrics("WIX")
-        mock_session.get.assert_called_once()
-        url = mock_session.get.call_args[0][0]
+    async def test_calls_correct_url(self, mock_client):
+        client, _ = mock_client
+        await MarketWatchScraper(client=client).scrape_performance_metrics("WIX")
+        client.get.assert_called_once()
+        url = client.get.call_args[0][0]
         assert url == "https://www.marketwatch.com/investing/stock/WIX"
 
-    def test_handles_missing_periods(self):
+    async def test_handles_missing_periods(self):
         incomplete_html = """
         <html><body><table>
             <tr>
@@ -103,25 +106,22 @@ class TestMarketWatchScraper:
             </tr>
         </table></body></html>
         """
-        with patch('scrapper.requests.Session') as mock_session_class:
-            session = Mock()
-            mock_session_class.return_value = session
-            response = Mock()
-            response.text = incomplete_html
-            response.raise_for_status = Mock()
-            session.get.return_value = response
+        client = AsyncMock(spec=BaseHTTPClient)
+        response = Mock()
+        response.text = incomplete_html
+        response.status_code = 200
+        response.raise_for_status = Mock()
+        client.get = AsyncMock(return_value=response)
 
-            with pytest.raises(PerformanceDataParseError):
-                MarketWatchScraper().scrape_performance_metrics("WIX")
+        with pytest.raises(PerformanceDataParseError):
+            await MarketWatchScraper(client=client).scrape_performance_metrics("WIX")
 
-    def test_handles_http_errors(self):
-        with patch('scrapper.requests.Session') as mock_session_class:
-            session = Mock()
-            mock_session_class.return_value = session
-            session.get.side_effect = requests.exceptions.ConnectionError("connection failed")
+    async def test_handles_http_errors(self):
+        client = AsyncMock(spec=BaseHTTPClient)
+        client.get = AsyncMock(side_effect=httpx.ConnectError("connection failed"))
 
-            with pytest.raises(StockFetchError):
-                MarketWatchScraper().scrape_performance_metrics("WIX")
+        with pytest.raises(StockFetchError):
+            await MarketWatchScraper(client=client).scrape_performance_metrics("WIX")
 
 
 if __name__ == "__main__":

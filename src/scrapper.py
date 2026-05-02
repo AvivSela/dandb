@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 
-import requests
 from bs4 import BeautifulSoup
-from requests.adapters import HTTPAdapter
-from urllib3 import Retry
 import logging
+
+from http_client import BaseHTTPClient, HTTPStatusError
 
 logger = logging.getLogger(__name__)
 
@@ -55,32 +54,27 @@ class PerformanceMetrics:
 class MarketWatchScraper:
     _api_url = "https://www.marketwatch.com/investing/stock"
 
-    def __init__(self, request_session=None, request_headers=None):
-        self._session = request_session or self._initiate_session(request_headers)
+    def __init__(self, client: BaseHTTPClient | None = None, request_headers: dict | None = None):
+        self._client = client or BaseHTTPClient(
+            headers=request_headers or DEFAULT_REQUEST_HEADERS,
+            timeout=10,
 
-    @staticmethod
-    def _initiate_session(request_headers=None):
-        session = requests.Session()
-        session.headers.update(request_headers or DEFAULT_REQUEST_HEADERS)
-        adapter = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503]))
-        session.mount("https://", adapter)
-        logger.debug("HTTP session initialized with retry adapter")
-        return session
+        )
 
-    def _fetch_stock_page(self, stock_symbol: str) -> str:
+    async def _fetch_stock_page(self, stock_symbol: str) -> str:
         url = f"{self._api_url}/{stock_symbol}"
         logger.info("Fetching stock page for %s from %s", stock_symbol, url)
         try:
-            req = self._session.get(url, timeout=10)
-            req.raise_for_status()
-        except requests.exceptions.RequestException as e:
+            response = await self._client.get(url)
+            response.raise_for_status()
+        except HTTPStatusError as e:
             raise StockFetchError(f"Failed to fetch stock page for '{stock_symbol}': {e}") from e
-        logger.debug("Received %d bytes for %s", len(req.text), stock_symbol)
-        return req.text
+        logger.debug("Received %d bytes for %s", len(response.text), stock_symbol)
+        return response.text
 
-    def scrape_performance_metrics(self, stock_symbol: str) -> PerformanceMetrics:
+    async def scrape_performance_metrics(self, stock_symbol: str) -> PerformanceMetrics:
         logger.info("Scraping performance metrics for %s", stock_symbol)
-        request_text = self._fetch_stock_page(stock_symbol)
+        request_text = await self._fetch_stock_page(stock_symbol)
         performance: dict = self._parse_performance_data(request_text)
         metrics = PerformanceMetrics.from_dict(performance)
         logger.info("Scraped %d/%d periods for %s", len(performance), len(_PERIOD_MAP), stock_symbol)
@@ -112,12 +106,8 @@ class MarketWatchScraper:
             raise PerformanceDataParseError(f"Missing performance periods: {missing}")
         return performance_data
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, *_):
-        self._session.close()
-
-
-if __name__ == "__main__":
-    MarketWatchScraper().scrape_performance_metrics("ABC")
+    async def __aexit__(self, *_):
+        await self._client.aclose()

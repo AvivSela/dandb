@@ -1,12 +1,10 @@
 import os
-import requests
 from dataclasses import dataclass
 from datetime import date, timedelta
 from dotenv import load_dotenv
 from urllib.parse import quote
 
-from requests.adapters import HTTPAdapter
-from urllib3 import Retry
+from http_client import BaseHTTPClient, HTTPStatusError
 
 
 class PolygonError(Exception):
@@ -65,39 +63,45 @@ load_dotenv()
 
 class PolygonClient:
     BASE_URL = "https://api.polygon.io"
-    def __init__(self, api_key: str | None = None, timeout: int = 10):
+
+    def __init__(self, api_key: str | None = None, timeout: int = 10, http_client: BaseHTTPClient | None = None):
         self.api_key = api_key or os.environ.get("POLYGON_API_KEY")
         if not self.api_key:
             raise PolygonAuthError("API key must be provided or set in POLYGON_API_KEY env var")
 
-        self.session = requests.Session()
-        self.session.headers["Authorization"] = f"Bearer {self.api_key}"
-        adapter = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503]))
-        self.session.mount("https://", adapter)
+        self._client = http_client or BaseHTTPClient(
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            timeout=timeout
+            )
 
-        self.timeout = timeout
 
-    def get_daily_open_close(self, stock_symbol: str, trade_date: date | None = None) -> DailyOpenClose:
+    async def get_daily_open_close(self, stock_symbol: str, trade_date: date | None = None) -> DailyOpenClose:
         if not stock_symbol or not stock_symbol.strip():
             raise PolygonValidationError("stock_symbol must be a non-empty string")
 
         trade_date_string = self._format_trade_date(trade_date)
-
         url = f"{self.BASE_URL}/v1/open-close/{quote(stock_symbol)}/{trade_date_string}"
-        response = self.session.get(url, timeout=self.timeout)
+
+        response = await self._client.get(url)
         try:
             response.raise_for_status()
-        except requests.HTTPError as exc:
+        except HTTPStatusError as exc:
             raise PolygonAPIError(str(exc), status_code=response.status_code) from exc
+
         res = DailyOpenClose.from_dict(response.json())
         if res.status != "OK":
             raise PolygonAPIError(f"Unexpected API status: {res.status}")
 
-        return DailyOpenClose.from_dict(response.json())
+        return res
 
     @staticmethod
     def _format_trade_date(trade_date: date | None):
         if trade_date is None:
             trade_date = date.today() - timedelta(days=1)
-
         return trade_date.strftime("%Y-%m-%d")
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_):
+        await self._client.aclose()

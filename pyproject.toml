@@ -1,0 +1,10 @@
+[project]
+dependencies = [
+    "httpx",
+    "beautifulsoup4",
+    "aiosqlite",
+    "python-dotenv",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

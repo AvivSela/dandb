@@ -1,5 +1,3 @@
-from typing import List, Union
-from pydantic import AnyHttpUrl, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -12,7 +10,7 @@ class Settings(BaseSettings):
     # 2. Database Settings (SQLite)
     DATABASE_URL: str = "./sql_app.db"
 
-    POLYGON_API_KEY: str = None
+    POLYGON_API_KEY: str | None = None
 
     # 4. Environment Management
     # This looks for a .env file in your root directory

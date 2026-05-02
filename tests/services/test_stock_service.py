@@ -5,7 +5,7 @@ import pytest
 from app.core.clients.polygon_client import DailyOpenClose, PolygonClient
 from app.core.clients.scrapper import MarketWatchScraper, PerformanceMetrics
 from app.repositories.holdings_repository import StockHoldingsRepository
-from app.schemas.stock_schemas import GetStockResponse
+from app.schemas.domain_schema import StockSummaryDomain
 from app.services.stock_service import StockService
 
 
@@ -63,10 +63,10 @@ def service(mock_repo, mock_polygon, mock_scraper) -> StockService:
 async def test_get_stock_summary_returns_assembled_response(service, mock_repo):
     result = await service.get_stock_summary("AAPL")
 
-    assert isinstance(result, GetStockResponse)
-    assert result.symbol == "AAPL"
+    assert isinstance(result, StockSummaryDomain)
+    assert result.daily_snapshot.symbol == "AAPL"
     assert result.amount == 10
-    assert result.open_price == 170.0
+    assert result.daily_snapshot.open_price == 170.0
     assert result.performance.period_5_day == "+1.00%"
 
 

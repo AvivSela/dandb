@@ -1,0 +1,100 @@
+# Project Rules — dandb FastAPI Stocks API
+
+## Architecture
+
+This project uses a strict layered architecture. Never skip layers or cross boundaries in the wrong direction.
+
+```
+api/v1/endpoints  →  services  →  repositories  →  models
+        ↓                ↓
+     schemas          domain_schema (frozen dataclasses)
+        ↓
+     mappers
+```
+
+- **Endpoints** handle HTTP concerns only: validate input, call the service, map to response.
+- **Services** own business logic and orchestration (e.g., `asyncio.gather` across clients/repos).
+- **Repositories** are the only layer that touches the database or constructs SQLAlchemy statements.
+- **Clients** (`polygon_client`, `scrapper`) are external I/O adapters; they belong in `app/core/clients/`.
+- **Domain objects** (`app/schemas/domain_schema.py`) are frozen dataclasses — pure data, no FastAPI or SQLAlchemy dependencies.
+- **Mappers** (`app/api/v1/mappers.py`) convert domain objects to Pydantic response schemas. Mapping logic never lives inside endpoints or schemas.
+
+## Async patterns
+
+- All I/O must be `async`. Never call blocking code in an async function.
+- Use `asyncio.gather` when multiple independent async calls can run in parallel (see `StockService.get_stock_summary`).
+- Use `AsyncExitStack` in the lifespan function when managing multiple async context managers.
+- Async class initialization uses the `@classmethod async def create(...)` factory pattern (see `StockHoldingsRepository.create`). Never make `__init__` async.
+- Async caching uses `anyio.functools.lru_cache`, not `functools.lru_cache` (which does not work with coroutines).
+
+## Dependency injection
+
+- Singleton resources (HTTP clients, repository) are stored in `app.state` during lifespan and retrieved via `Depends` functions in `app/api/v1/deps.py`.
+- All `Depends` functions live in `deps.py`. Do not define them inside endpoint files.
+- Raise `HTTPException(status_code=500)` when a required `app.state` resource is missing — this is the established pattern.
+- Never import clients or repositories directly inside endpoint functions; always go through `Depends`.
+
+## Pydantic / schemas
+
+- Use Pydantic v2 (`model_config = ConfigDict(...)`, `Field(serialization_alias=...)`, `pydantic_settings.BaseSettings`).
+- Request schemas live in `app/schemas/stock_schemas.py`. Response schemas live in the same file. Do not mix request and response models.
+- Use `serialization_alias` (not `alias`) when the JSON key differs from the Python field name (e.g., `from`, `afterHours`).
+- Provide `json_schema_extra` with a realistic `"example"` block on response models so the Swagger UI is meaningful.
+- `PostStockResponse.create_from` is the established factory method pattern for building response objects from domain data.
+
+## Settings
+
+- All configuration lives in `app/core/config.py` as a `pydantic_settings.BaseSettings` subclass.
+- Never read `os.environ` directly in application code — use `settings.*` instead.
+- `load_dotenv()` must not be called at module level inside library modules. It belongs in the app entry point only (`main.py` or `__main__`).
+- Optional secrets (like `POLYGON_API_KEY`) should be typed `str | None = None` and validated at startup, not silently passed as `None`.
+
+## Error handling
+
+- Domain-level exceptions (`PolygonAPIError`, `StockFetchError`, `PerformanceDataParseError`) must be caught and re-raised as `HTTPException` at the API layer, not inside clients or services.
+- Add FastAPI exception handlers in `main.py` (`app.add_exception_handler(...)`) for any custom exception class that can bubble up to the endpoint.
+- Never expose raw exception messages from external services to API consumers.
+
+## HTTP clients
+
+- All HTTP clients extend `BaseHTTPClient` (`app/core/clients/http_client.py`).
+- Retry logic (exponential backoff, 3 attempts, status codes 500/502/503) is already handled in `BaseHTTPClient.get`. Do not duplicate it in subclasses.
+- Pass `timeout` through to `BaseHTTPClient` — never hard-code a timeout inside a client class.
+- Clients are async context managers; always enter them via `AsyncExitStack` in the lifespan, never create them inside request handlers.
+
+## Database / Repository
+
+- All database access goes through `StockHoldingsRepository`. No SQLAlchemy code outside `app/repositories/` and `app/models/`.
+- SQLite WAL mode is set via a `connect` event listener in `StockHoldingsRepository.create` — do not add PRAGMA calls elsewhere.
+- Use `sqlite_insert(...).on_conflict_do_update(...)` for upsert operations. Do not use `merge` or manual select-then-insert.
+- Use `async_sessionmaker(expire_on_commit=False)` to avoid lazy-load errors on detached instances.
+- For in-memory test databases, pass `db_path=":memory:"` to `StockHoldingsRepository.create`, which uses `StaticPool`.
+
+## Python style
+
+- Python 3.10+ union syntax (`X | Y`) over `Optional[X]` or `Union[X, Y]`.
+- Frozen dataclasses (`@dataclass(frozen=True)`) for immutable domain/value objects.
+- No `print()` in production code — use `logging.getLogger(__name__)`.
+- No module-level side effects (network calls, file reads, `load_dotenv()`) outside of `main.py`.
+- No unused imports. `api.py` should not import anything it does not use.
+
+## Testing
+
+- Use `StockHoldingsRepository.create(":memory:")` for repository tests — no mocking of the database.
+- Mock `BaseHTTPClient.get` to isolate HTTP client tests from the network.
+- Inject mock clients through `StockService.__init__` for service-layer tests.
+- Test the mapper (`map_domain_to_response`) independently from the endpoint.
+
+## OpenAPI / Swagger
+
+- Every router endpoint must have a `summary` and `response_description` via the `@router.get/post(...)` decorator.
+- Tags should match the tag declared in `api.py` `include_router` call — do not add extra tags inside endpoint decorators unless adding a meaningful second tag.
+- Return type annotations (e.g., `-> GetStockResponse`) are the primary source for response schema — always include them.
+
+## What not to do
+
+- Do not add `response_model=` when a return type annotation already exists; FastAPI will use one or the other.
+- Do not create new domain schema files per endpoint — domain objects go in `app/schemas/domain_schema.py`.
+- Do not add a second router file without a matching `include_router` call in `api.py`.
+- Do not bypass the service layer by calling the repository directly from an endpoint.
+- Do not store mutable state inside `BaseHTTPClient` or client subclasses (they are shared across requests).

@@ -9,13 +9,13 @@ from app.api.v1.deps import get_stock_service
 from app.core.clients.polygon_client import DailyOpenClose
 from app.core.clients.scrapper import PerformanceMetrics
 from app.core.config import settings
-from app.schemas.stock_schemas import GetStockResponse
+from app.schemas.domain_schema import StockSummaryDomain
 from app.services.stock_service import StockService
 
 
-def _make_get_response() -> GetStockResponse:
-    return GetStockResponse.build_from(
-        DailyOpenClose(
+def _make_domain() -> StockSummaryDomain:
+    return StockSummaryDomain(
+        daily_snapshot=DailyOpenClose(
             status="OK",
             symbol="AAPL",
             trade_date="2024-03-05",
@@ -27,21 +27,21 @@ def _make_get_response() -> GetStockResponse:
             after_hours=171.0,
             pre_market=169.5,
         ),
-        PerformanceMetrics(
+        performance=PerformanceMetrics(
             period_5_day="+1.00%",
             period_1_month="+2.00%",
             period_3_month="+3.00%",
             ytd="+4.00%",
             period_1_year="+5.00%",
         ),
-        10,
+        amount=10,
     )
 
 
 @pytest.fixture
 def mock_service() -> AsyncMock:
     svc = AsyncMock(spec=StockService)
-    svc.get_stock_summary.return_value = _make_get_response()
+    svc.get_stock_summary.return_value = _make_domain()
     svc.post_stock_summary.return_value = None
     return svc
 

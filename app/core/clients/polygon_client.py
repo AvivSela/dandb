@@ -89,11 +89,12 @@ class PolygonClient:
         print("cache miss !")
         url = f"{self.BASE_URL}/v1/open-close/{quote(stock_symbol)}/{trade_date}"
 
-        response = await self._client.get(url)
         try:
-            response.raise_for_status()
+            response = await self._client.get(url)
         except HTTPStatusError as exc:
-            raise PolygonAPIError(str(exc), status_code=response.status_code) from exc
+            if "401" in str(exc):
+                raise PolygonAuthError(str(exc)) from exc
+            raise PolygonAPIError(str(exc)) from exc
 
         res = DailyOpenClose.from_dict(response.json())
         if res.status != "OK":

@@ -4,12 +4,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # 1. Project Metadata
-    PROJECT_NAME: str = "My FastAPI Service"
+    PROJECT_NAME: str = "Stocks REST API"
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
+    HTTP_REQUEST_TIMEOUT: int = 10
 
     # 2. Database Settings (SQLite)
-    DATABASE_URL: str = "sqlite:///./sql_app.db"
+    DATABASE_URL: str = "./sql_app.db"
 
     POLYGON_API_KEY: str = None
 

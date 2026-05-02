@@ -50,7 +50,7 @@ class PerformanceMetrics:
 class MarketWatchScraper:
     _api_url = "https://www.marketwatch.com/investing/stock"
 
-    def __init__(self, client: BaseHTTPClient | None = None, request_headers: dict | None = None):
+    def __init__(self, client: BaseHTTPClient | None = None, request_headers: dict | None = None, timeout: int = 10):
         self._client = client or BaseHTTPClient(
             headers=request_headers or DEFAULT_REQUEST_HEADERS,
             timeout=10,

@@ -19,9 +19,9 @@ def get_application() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         async with AsyncExitStack() as stack:
-            polygon = await stack.enter_async_context(PolygonClient(settings.POLYGON_API_KEY))
-            scraper = await stack.enter_async_context(MarketWatchScraper())
-            repository = await StockHoldingsRepository.create("mydb.db")
+            polygon = await stack.enter_async_context(PolygonClient(settings.POLYGON_API_KEY, timeout=settings.HTTP_REQUEST_TIMEOUT))
+            scraper = await stack.enter_async_context(MarketWatchScraper(timeout=settings.HTTP_REQUEST_TIMEOUT))
+            repository = await StockHoldingsRepository.create(settings.DATABASE_URL)
 
             app.state.polygon = polygon
             app.state.scraper = scraper

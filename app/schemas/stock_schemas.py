@@ -1,9 +1,5 @@
 from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
-
-from app.core.clients.polygon_client import DailyOpenClose
-from app.core.clients.scrapper import PerformanceMetrics
 
 
 class PostStockRequest(BaseModel):
@@ -28,12 +24,33 @@ class Performance(BaseModel):
 
 class GetStockResponse(BaseModel):
     model_config = ConfigDict(
-        serialize_by_alias=True
+        serialize_by_alias=True,
+        json_schema_extra={
+            "example": {
+                "symbol": "AAPL",
+                "amount": 150,
+                "status": "OK",
+                "from": "2023-10-27",
+                "open": 172.30,
+                "high": 175.67,
+                "low": 170.12,
+                "close": 173.50,
+                "volume": 56430000,
+                "afterHours": 173.85,
+                "preMarket": 171.10,
+                "performance": {
+                    "period_5_day": "+1.2%",
+                    "period_1_month": "-0.5%",
+                    "period_3_month": "+5.8%",
+                    "ytd": "+12.4%",
+                    "period_1_year": "+20.1%"
+                }
+            }
+        }
     )
     symbol: str
     amount: int = 0
     status: str = "OK"
-
     from_date: str = Field(serialization_alias="from")
     open_price: float = Field(serialization_alias="open")
     high: float
@@ -43,28 +60,3 @@ class GetStockResponse(BaseModel):
     after_hours: Optional[float] = Field(None, serialization_alias="afterHours")
     pre_market: Optional[float] = Field(None, serialization_alias="preMarket")
     performance: Performance
-
-    @classmethod
-    def build_from(cls, daily_open_close: DailyOpenClose, performance_metrics: PerformanceMetrics, amount: int | None):
-        safe_amount = amount if amount is not None else 0
-
-        return cls(
-            symbol=daily_open_close.symbol,
-            amount=safe_amount,
-            status=daily_open_close.status,
-            from_date=daily_open_close.trade_date,
-            open_price=daily_open_close.open_price,
-            high=daily_open_close.high,
-            low=daily_open_close.low,
-            close=daily_open_close.close,
-            volume=int(daily_open_close.volume),  # Cast to int as per your requirements
-            after_hours=daily_open_close.after_hours,
-            pre_market=daily_open_close.pre_market,
-            performance=Performance(
-                period_5_day=performance_metrics.period_5_day,
-                period_1_month=performance_metrics.period_1_month,
-                period_3_month=performance_metrics.period_3_month,
-                ytd=performance_metrics.ytd,
-                period_1_year=performance_metrics.period_1_year
-            )
-        )

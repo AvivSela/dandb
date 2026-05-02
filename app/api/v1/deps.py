@@ -10,8 +10,11 @@ from app.repositories.holdings_repository import StockHoldingsRepository
 
 
 
-async def get_repository():
-    return await StockHoldingsRepository.create("mydb.db")
+def get_repository(request: Request) -> StockHoldingsRepository:
+    repo = getattr(request.app.state, "repository", None)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Repository not initialized in application state")
+    return repo
 
 def get_polygon_client(request: Request) -> PolygonClient:
     polygon = getattr(request.app.state, "polygon", None)

@@ -10,7 +10,7 @@ class PostStockResponse(BaseModel):
 
     @classmethod
     def create_from(cls, symbol: str, amount: int):
-        return cls(message=f"{amount} units of stock {symbol} were added to your stock record")
+        return cls(message=f"{amount} units of stock {symbol.upper()} were added to your stock record")
 
 
 class Performance(BaseModel):

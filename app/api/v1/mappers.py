@@ -12,7 +12,7 @@ def map_domain_to_response(domain: StockSummaryDomain) -> GetStockResponse:
     return GetStockResponse(
         # Top-level mapping
         symbol=domain.daily_snapshot.symbol,
-        amount=domain.amount or 0,
+        amount=domain.amount,
         status=domain.daily_snapshot.status,
         from_date=domain.daily_snapshot.trade_date,
 

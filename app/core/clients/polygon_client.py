@@ -72,6 +72,7 @@ class PolygonClient:
             headers={"Authorization": f"Bearer {self.api_key}"},
             timeout=timeout
             )
+        self._cacheable_request_for_open_close = lru_cache(maxsize=1024)(self._fetch)
 
 
     async def get_daily_open_close(self, stock_symbol: str, trade_date: date | None = None) -> DailyOpenClose:
@@ -81,8 +82,7 @@ class PolygonClient:
         return await self._cacheable_request_for_open_close(stock_symbol, trade_date)
 
 
-    @lru_cache(maxsize=1024)
-    async def _cacheable_request_for_open_close(self,stock_symbol: str, trade_date: str)-> DailyOpenClose:
+    async def _fetch(self, stock_symbol: str, trade_date: str) -> DailyOpenClose:
         logger.debug("cache miss for %s %s", stock_symbol, trade_date)
         url = f"{self.BASE_URL}/v1/open-close/{quote(stock_symbol)}/{trade_date}"
 

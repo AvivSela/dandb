@@ -11,10 +11,6 @@ from app.repositories.holdings_repository import StockHoldingsRepository
 
 
 def get_application() -> FastAPI:
-    """
-    Factory function to initialize the FastAPI app.
-    This makes testing and scaling much easier.
-    """
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

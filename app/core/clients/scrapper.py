@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
@@ -70,7 +71,11 @@ class MarketWatchScraper:
     async def scrape_performance_metrics(self, stock_symbol: str) -> PerformanceMetrics:
         logger.info("Scraping performance metrics for %s", stock_symbol)
         request_text = await self._fetch_stock_page(stock_symbol)
-        performance: dict = self._parse_performance_data(request_text)
+        loop = asyncio.get_running_loop()
+        performance: dict = await loop.run_in_executor(
+            None, self._parse_performance_data, request_text
+        )
+
         metrics = PerformanceMetrics.from_dict(performance)
         logger.info("Scraped %d/%d periods for %s", len(performance), len(_PERIOD_MAP), stock_symbol)
         return metrics
@@ -78,23 +83,22 @@ class MarketWatchScraper:
     @staticmethod
     def _parse_performance_data(html_content: str) -> dict[str, str]:
         soup = BeautifulSoup(html_content, 'html.parser')
-        performance_data = {}
+        performance_data: dict[str, str] = {}
 
-        for period in _PERIOD_MAP:
-            cell = soup.find('td', class_='table__cell', string=period)  # type: ignore[arg-type]
-            if not cell:
-                logger.warning("Could not parse period '%s' from HTML", period)
+        cells = soup.find_all('td', class_='table__cell')
+        for i, cell in enumerate(cells):
+            text = cell.get_text(strip=True)
+            if text not in _PERIOD_MAP:
                 continue
-            next_cell = cell.find_next_sibling('td', class_='table__cell')
-            if not next_cell:
-                logger.warning("Could not parse period '%s' from HTML", period)
+            if i + 1 >= len(cells):
+                logger.warning("Could not parse period '%s' from HTML", text)
                 continue
-            value_element = next_cell.find('li', class_='content__item value ignore-color')
+            value_element = cells[i + 1].find('li', class_='content__item value ignore-color')
             if not value_element:
-                logger.warning("Could not parse period '%s' from HTML", period)
+                logger.warning("Could not parse period '%s' from HTML", text)
                 continue
-            performance_data[period] = value_element.get_text(strip=True)
-            logger.debug("Parsed %s: %s", period, performance_data[period])
+            performance_data[text] = value_element.get_text(strip=True)
+            logger.debug("Parsed %s: %s", text, performance_data[text])
 
         missing = [period for period in _PERIOD_MAP if period not in performance_data]
         if missing:

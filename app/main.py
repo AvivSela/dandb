@@ -2,6 +2,7 @@ import logging
 from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.api.v1.api import api_router
@@ -65,9 +66,7 @@ async def _polygon_auth_handler(
     )
 
 
-async def _polygon_api_handler(
-    request: Request, exc: PolygonAPIError
-) -> JSONResponse:
+async def _polygon_api_handler(request: Request, exc: PolygonAPIError) -> JSONResponse:
     if exc.status_code == 404:
         logger.warning("Symbol not found: %s", exc)
         return JSONResponse(
@@ -83,6 +82,18 @@ async def _polygon_api_handler(
         content=ErrorResponse(
             error="MARKET_DATA_ERROR",
             message="Market data service returned an error.",
+        ).model_dump(),
+    )
+
+
+async def _validation_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=422,
+        content=ErrorResponse(
+            error="VALIDATION_ERROR",
+            message="Request validation failed.",
         ).model_dump(),
     )
 
@@ -131,6 +142,7 @@ def get_application() -> FastAPI:
     _app.include_router(api_router, prefix=settings.API_V1_STR)
 
     # Subclasses must be registered before their base class
+    _app.add_exception_handler(RequestValidationError, _validation_handler)
     _app.add_exception_handler(InsufficientFundsException, _insufficient_funds_handler)
     _app.add_exception_handler(PolygonValidationError, _polygon_validation_handler)
     _app.add_exception_handler(PolygonAuthError, _polygon_auth_handler)

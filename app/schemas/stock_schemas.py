@@ -30,7 +30,7 @@ class PostStockResponse(BaseModel):
     message: str
 
     @classmethod
-    def create_from(cls, symbol: str, amount: int):
+    def create_from(cls, symbol: str, amount: int) -> "PostStockResponse":
         if amount == 0:
             return cls(
                 message=f"No changes were made to your {symbol.upper()} holdings."
@@ -43,16 +43,18 @@ class PostStockResponse(BaseModel):
 
 
 class Performance(BaseModel):
-    period_5_day: str
-    period_1_month: str
-    period_3_month: str
+    model_config = ConfigDict(serialize_by_alias=True, populate_by_name=True)
+    period_5_day: str = Field(alias="period5Day")
+    period_1_month: str = Field(alias="period1Month")
+    period_3_month: str = Field(alias="period3Month")
     ytd: str
-    period_1_year: str
+    period_1_year: str = Field(alias="period1Year")
 
 
 class GetStockResponse(BaseModel):
     model_config = ConfigDict(
         serialize_by_alias=True,
+        populate_by_name=True,
         json_schema_extra={
             "example": {
                 "symbol": "AAPL",
@@ -67,11 +69,11 @@ class GetStockResponse(BaseModel):
                 "afterHours": 173.85,
                 "preMarket": 171.10,
                 "performance": {
-                    "period_5_day": "+1.2%",
-                    "period_1_month": "-0.5%",
-                    "period_3_month": "+5.8%",
+                    "period5Day": "+1.2%",
+                    "period1Month": "-0.5%",
+                    "period3Month": "+5.8%",
                     "ytd": "+12.4%",
-                    "period_1_year": "+20.1%",
+                    "period1Year": "+20.1%",
                 },
             }
         },
@@ -79,12 +81,12 @@ class GetStockResponse(BaseModel):
     symbol: str
     amount: int = 0
     status: str = "OK"
-    from_date: str = Field(serialization_alias="from")
-    open_price: float = Field(serialization_alias="open")
+    from_date: str = Field(alias="from")
+    open_price: float = Field(alias="open")
     high: float
     low: float
     close: float
     volume: int
-    after_hours: float | None = Field(None, serialization_alias="afterHours")
-    pre_market: float | None = Field(None, serialization_alias="preMarket")
+    after_hours: float | None = Field(None, alias="afterHours")
+    pre_market: float | None = Field(None, alias="preMarket")
     performance: Performance

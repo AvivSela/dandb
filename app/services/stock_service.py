@@ -1,7 +1,7 @@
 import asyncio
 
 from app.core.clients.polygon_client import PolygonClient
-from app.core.clients.scrapper import MarketWatchScraper
+from app.core.clients.scraper import MarketWatchScraper
 from app.repositories.holdings_repository import StockHoldingsRepository
 from app.schemas.domain_schema import StockSummaryDomain
 

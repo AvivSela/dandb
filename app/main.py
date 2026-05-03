@@ -12,7 +12,7 @@ from app.core.clients.polygon_client import (
     PolygonClient,
     PolygonValidationError,
 )
-from app.core.clients.scrapper import (
+from app.core.clients.scraper import (
     MarketWatchScraper,
     PerformanceDataParseError,
     StockFetchError,

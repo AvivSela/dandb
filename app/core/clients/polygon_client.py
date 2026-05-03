@@ -89,9 +89,9 @@ class PolygonClient:
         return res
 
     @staticmethod
-    def _calculate_trade_date_before_given_date(a_date: date | None):
-        a_date = a_date or date.today()
-        trade_date_before = get_last_weekday(a_date)
+    def _calculate_trade_date_before_given_date(reference_date: date | None):
+        reference_date = reference_date or date.today()
+        trade_date_before = get_last_weekday(reference_date)
         return trade_date_before.strftime("%Y-%m-%d")
 
     async def __aenter__(self):

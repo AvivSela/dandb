@@ -5,7 +5,7 @@ from fastapi import HTTPException
 
 from app.api.v1.deps import get_repository, get_stock_service
 from app.core.clients.polygon_client import PolygonClient
-from app.core.clients.scrapper import MarketWatchScraper
+from app.core.clients.scraper import MarketWatchScraper
 from app.repositories.holdings_repository import StockHoldingsRepository
 from app.services.stock_service import StockService
 

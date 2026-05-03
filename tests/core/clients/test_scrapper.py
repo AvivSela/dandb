@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.core.clients.scrapper import (
+from app.core.clients.scraper import (
     MarketWatchScraper,
     PerformanceDataParseError,
     StockFetchError,

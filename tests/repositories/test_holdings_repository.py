@@ -20,13 +20,13 @@ async def test_upsert_replaces_amount_for_existing_symbol(repo):
 
 
 async def test_increase_balance_inserts_new_symbol(repo):
-    await repo.increase_balance("AAPL", 7)
+    await repo._increase_balance("AAPL", 7)
     assert await repo.get("AAPL") == 7
 
 
 async def test_increase_balance_accumulates_for_existing_symbol(repo):
-    await repo.increase_balance("AAPL", 10)
-    await repo.increase_balance("AAPL", 5)
+    await repo._increase_balance("AAPL", 10)
+    await repo._increase_balance("AAPL", 5)
     assert await repo.get("AAPL") == 15
 
 

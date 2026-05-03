@@ -56,11 +56,11 @@ class StockHoldingsRepository:
 
     async def update_balance(self, symbol: str, amount: int) -> None:
         if amount > 0:
-            await self.increase_balance(symbol=symbol, amount=amount)
+            await self._increase_balance(symbol=symbol, amount=amount)
         else:
-            await self.decrease_balance(symbol=symbol, amount=abs(amount))
+            await self._decrease_balance(symbol=symbol, amount=abs(amount))
 
-    async def increase_balance(self, symbol: str, amount: int) -> None:
+    async def _increase_balance(self, symbol: str, amount: int) -> None:
         if amount <= 0:
             raise ValueError("Amount must be positive for increase_balance")
 
@@ -75,7 +75,7 @@ class StockHoldingsRepository:
         async with self._session_factory.begin() as session:
             await session.execute(stmt)
 
-    async def decrease_balance(self, symbol: str, amount: int) -> None:
+    async def _decrease_balance(self, symbol: str, amount: int) -> None:
         if amount <= 0:
             raise ValueError("Amount must be positive for decrease_balance")
 

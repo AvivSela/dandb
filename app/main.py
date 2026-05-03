@@ -9,6 +9,7 @@ from app.core.clients.polygon_client import (
     PolygonAPIError,
     PolygonAuthError,
     PolygonClient,
+    PolygonValidationError,
 )
 from app.core.clients.scrapper import (
     MarketWatchScraper,
@@ -34,6 +35,19 @@ async def _insufficient_funds_handler(
         content=ErrorResponse(
             error="INSUFFICIENT_FUNDS",
             message=f"Insufficient shares to complete deduction for {exc.symbol}.",
+        ).model_dump(),
+    )
+
+
+async def _polygon_validation_handler(
+    request: Request, exc: PolygonValidationError
+) -> JSONResponse:
+    logger.warning("Polygon validation error: %s", exc)
+    return JSONResponse(
+        status_code=400,
+        content=ErrorResponse(
+            error="INVALID_REQUEST",
+            message="Invalid stock symbol provided.",
         ).model_dump(),
     )
 
@@ -116,8 +130,9 @@ def get_application() -> FastAPI:
 
     _app.include_router(api_router, prefix=settings.API_V1_STR)
 
-    # PolygonAuthError before PolygonAPIError — it's a subclass and must be registered first
+    # Subclasses must be registered before their base class
     _app.add_exception_handler(InsufficientFundsException, _insufficient_funds_handler)
+    _app.add_exception_handler(PolygonValidationError, _polygon_validation_handler)
     _app.add_exception_handler(PolygonAuthError, _polygon_auth_handler)
     _app.add_exception_handler(PolygonAPIError, _polygon_api_handler)
     _app.add_exception_handler(StockFetchError, _external_fetch_handler)

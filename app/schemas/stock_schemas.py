@@ -10,7 +10,8 @@ class PostStockResponse(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "message": "50 units of stock AAPL were added to your stock record"
+                "message": "Order Executed: BUY 50 AAPL. Your holdings have been updated."
+
             }
         }
     )
@@ -18,8 +19,12 @@ class PostStockResponse(BaseModel):
 
     @classmethod
     def create_from(cls, symbol: str, amount: int):
+        if amount == 0:
+            return cls(message=f"No changes were made to your {symbol.upper()} holdings.")
+
+        side = "BUY" if amount > 0 else "SELL"
         return cls(
-            message=f"{amount} units of stock {symbol.upper()} were added to your stock record"
+            message=f"Order Executed: {side} {abs(amount)} {symbol.upper()}. Your holdings have been updated."
         )
 
 

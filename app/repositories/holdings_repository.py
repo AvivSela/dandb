@@ -1,4 +1,4 @@
-from sqlalchemy import delete, event, select
+from sqlalchemy import delete, event, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
@@ -48,7 +48,7 @@ class StockHoldingsRepository:
         async with self._session_factory.begin() as session:
             await session.execute(stmt)
 
-    async def add_amount(self, symbol: str, amount: int) -> None:
+    async def old_add_amount(self, symbol: str, amount: int) -> None:
         stmt = (
             sqlite_insert(UserStock)
             .values(stock_symbol=symbol, amount=amount)
@@ -59,6 +59,44 @@ class StockHoldingsRepository:
         )
         async with self._session_factory.begin() as session:
             await session.execute(stmt)
+
+    async def increase_balance(self, symbol: str, amount: int) -> None:
+        if amount <= 0:
+            raise ValueError("Amount must be positive for increase_balance")
+
+        stmt = (
+            sqlite_insert(UserStock)
+            .values(stock_symbol=symbol, amount=amount)
+            .on_conflict_do_update(
+                index_elements=["stock_symbol"],
+                set_={"amount": UserStock.amount + amount},
+            )
+        )
+        async with self._session_factory.begin() as session:
+            await session.execute(stmt)
+
+    async def decrease_balance(self, symbol: str, amount: int) -> None:
+        if amount <= 0:
+            raise ValueError("Amount must be positive for decrease_balance")
+
+        # We subtract the absolute 'amount' from the DB column
+        stmt = (
+            update(UserStock)
+            .where(UserStock.stock_symbol == symbol)
+            .where(UserStock.amount >= amount)
+            .values(amount=UserStock.amount - amount)
+            .returning(UserStock.amount)
+        )
+
+        async with self._session_factory.begin() as session:
+            result = await session.execute(stmt)
+            updated_amount = result.scalar_one_or_none()
+
+            if updated_amount is None:
+                # This triggers if the symbol doesn't exist OR amount < amount_to_deduct
+                raise ValueError(
+                    f"Deduction failed for {symbol}: Insufficient funds or symbol not found."
+                )
 
     async def get(self, symbol: str) -> int | None:
         stmt = select(UserStock.amount).where(UserStock.stock_symbol == symbol)

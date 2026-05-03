@@ -31,8 +31,8 @@ async def get_stock(
 
 @router.post(
     "/{stock_symbol}",
-    summary="Add shares to holding",
-    response_description="Confirmation of the added share amount for the requested symbol",
+    summary="Modify Holding",
+    response_description="Confirmation of the adjusted share amount for the requested symbol",
 )
 async def post_stock(
     stock_symbol: ShareSymbol,

@@ -81,3 +81,24 @@ async def test_get_stock_summary_calls_clients_concurrently(
 
     mock_polygon.get_daily_open_close.assert_called_once()
     mock_scraper.scrape_performance_metrics.assert_called_once()
+
+
+async def test_post_stock_summary_buy_calls_increase_balance(service, mock_repo):
+    await service.post_stock_summary("AAPL", 10)
+
+    mock_repo.increase_balance.assert_called_once_with("AAPL", 10)
+    mock_repo.decrease_balance.assert_not_called()
+
+
+async def test_post_stock_summary_sell_calls_decrease_balance(service, mock_repo):
+    await service.post_stock_summary("AAPL", -5)
+
+    mock_repo.decrease_balance.assert_called_once_with("AAPL", 5)
+    mock_repo.increase_balance.assert_not_called()
+
+
+async def test_post_stock_summary_zero_calls_no_repo_method(service, mock_repo):
+    await service.post_stock_summary("AAPL", 0)
+
+    mock_repo.increase_balance.assert_not_called()
+    mock_repo.decrease_balance.assert_not_called()

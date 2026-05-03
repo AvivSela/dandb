@@ -29,4 +29,8 @@ class StockService:
         )
 
     async def post_stock_summary(self, symbol: str, amount: int) -> None:
-        await self.repository.add_amount(symbol, amount)
+        if amount > 0:
+            await self.repository.increase_balance(symbol, amount)
+        if amount < 0:
+            await self.repository.decrease_balance(symbol, abs(amount))
+

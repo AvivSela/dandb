@@ -1,6 +1,19 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ErrorResponse(BaseModel):
+    error: str
+    message: str
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "error": "SYMBOL_NOT_FOUND",
+                "message": "No market data found for the requested symbol.",
+            }
+        }
+    )
+
+
 class PostStockRequest(BaseModel):
     model_config = ConfigDict(json_schema_extra={"example": {"amount": 50}})
     amount: int

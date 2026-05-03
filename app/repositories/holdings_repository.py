@@ -7,7 +7,9 @@ from app.models.models import Base, UserStock
 
 
 class InsufficientFundsException(Exception):
-    pass
+    def __init__(self, symbol: str) -> None:
+        super().__init__(f"Insufficient funds for {symbol}")
+        self.symbol = symbol
 
 
 class StockHoldingsRepository:
@@ -86,9 +88,7 @@ class StockHoldingsRepository:
 
             if updated_amount is None:
                 # This triggers if the symbol doesn't exist OR amount < amount_to_deduct
-                raise InsufficientFundsException(
-                    f"Deduction failed for {symbol}: Insufficient funds."
-                )
+                raise InsufficientFundsException(symbol)
 
     async def get(self, symbol: str) -> int | None:
         stmt = select(UserStock.amount).where(UserStock.stock_symbol == symbol)

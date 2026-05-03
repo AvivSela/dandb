@@ -1,8 +1,19 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
+
+ErrorCode = Literal[
+    "SYMBOL_NOT_FOUND",
+    "INSUFFICIENT_FUNDS",
+    "INVALID_REQUEST",
+    "SERVICE_UNAVAILABLE",
+    "MARKET_DATA_ERROR",
+    "MARKET_DATA_UNAVAILABLE",
+]
 
 
 class ErrorResponse(BaseModel):
-    error: str
+    error: ErrorCode
     message: str
     model_config = ConfigDict(
         json_schema_extra={
@@ -16,7 +27,9 @@ class ErrorResponse(BaseModel):
 
 class PostStockRequest(BaseModel):
     model_config = ConfigDict(json_schema_extra={"example": {"amount": 50}})
-    amount: int
+    amount: int = Field(
+        description="Shares to add (positive) or remove (negative). Zero is a no-op."
+    )
 
 
 class PostStockResponse(BaseModel):
@@ -44,11 +57,19 @@ class PostStockResponse(BaseModel):
 
 class Performance(BaseModel):
     model_config = ConfigDict(serialize_by_alias=True, populate_by_name=True)
-    period_5_day: str = Field(alias="period5Day", description="Price change over the last 5 trading days.")
-    period_1_month: str = Field(alias="period1Month", description="Price change over the last month.")
-    period_3_month: str = Field(alias="period3Month", description="Price change over the last 3 months.")
+    period_5_day: str = Field(
+        alias="period5Day", description="Price change over the last 5 trading days."
+    )
+    period_1_month: str = Field(
+        alias="period1Month", description="Price change over the last month."
+    )
+    period_3_month: str = Field(
+        alias="period3Month", description="Price change over the last 3 months."
+    )
     ytd: str = Field(description="Price change year-to-date.")
-    period_1_year: str = Field(alias="period1Year", description="Price change over the last year.")
+    period_1_year: str = Field(
+        alias="period1Year", description="Price change over the last year."
+    )
 
 
 class GetStockResponse(BaseModel):
@@ -80,13 +101,23 @@ class GetStockResponse(BaseModel):
     )
     symbol: str = Field(description="The stock ticker symbol (e.g. AAPL).")
     amount: int = Field(0, description="User's current share holdings for this symbol.")
-    status: str = Field("OK", description="Status of the snapshot data returned by the data provider.")
-    from_date: str = Field(alias="from", description="Trade date of the snapshot (YYYY-MM-DD).")
-    open_price: float = Field(alias="open", description="Opening price for the trading day.")
+    status: Literal["OK"] = "OK"
+    from_date: str = Field(
+        alias="from", description="Trade date of the snapshot (YYYY-MM-DD)."
+    )
+    open_price: float = Field(
+        alias="open", description="Opening price for the trading day."
+    )
     high: float = Field(description="Highest price reached during the trading day.")
     low: float = Field(description="Lowest price reached during the trading day.")
     close: float = Field(description="Closing price for the trading day.")
     volume: int = Field(description="Number of shares traded during the session.")
-    after_hours: float | None = Field(None, alias="afterHours", description="Post-market closing price, if available.")
-    pre_market: float | None = Field(None, alias="preMarket", description="Pre-market price, if available.")
-    performance: Performance = Field(description="Price performance metrics across multiple time periods.")
+    after_hours: float | None = Field(
+        None, alias="afterHours", description="Post-market closing price, if available."
+    )
+    pre_market: float | None = Field(
+        None, alias="preMarket", description="Pre-market price, if available."
+    )
+    performance: Performance = Field(
+        description="Price performance metrics across multiple time periods."
+    )

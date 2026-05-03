@@ -33,6 +33,7 @@ api/v1/endpoints  →  services  →  repositories  →  models
 - All `Depends` functions live in `deps.py`. Do not define them inside endpoint files.
 - Raise `HTTPException(status_code=500)` when a required `app.state` resource is missing — this is the established pattern.
 - Never import clients or repositories directly inside endpoint functions; always go through `Depends`.
+- ruff rule B008 ("function call in default args") is intentionally suppressed in `pyproject.toml` — `Depends()` in default args is the correct FastAPI DI pattern, not a bug. Do not attempt to refactor it away.
 
 ## Pydantic / schemas
 

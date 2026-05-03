@@ -8,12 +8,14 @@ A FastAPI REST service that aggregates stock market data by combining official d
 
 ## Build / Run Commands
 
-No `pyproject.toml` or `requirements.txt` found — dependencies are managed in `.venv/`.
+Dependencies are managed in `.venv/`. A `pyproject.toml` exists at the project root with ruff configuration.
+
+On Windows, use `.venv\Scripts\` prefix for all tools (e.g. `.venv\Scripts\python.exe`, `.venv\Scripts\ruff.exe`, `.venv\Scripts\pytest.exe`).
 
 ```bash
 # Install dependencies (if recreating venv)
 pip install fastapi uvicorn sqlalchemy aiosqlite httpx pydantic pydantic-settings \
-            python-dotenv beautifulsoup4 pytest pytest-asyncio anyio
+            python-dotenv beautifulsoup4 pytest pytest-asyncio anyio ruff
 
 # Run dev server
 uvicorn app.main:app --reload
@@ -26,6 +28,21 @@ Requires a `.env` file in the project root:
 ```
 POLYGON_API_KEY=<your_key>
 DATABASE_URL=sqlite+aiosqlite:///./sql_app.db   # optional, has a default
+```
+
+---
+
+## Linting
+
+```bash
+# Check for issues
+.venv\Scripts\ruff.exe check app/ tests/
+
+# Auto-fix safe issues
+.venv\Scripts\ruff.exe check app/ tests/ --fix
+
+# Format
+.venv\Scripts\ruff.exe format app/ tests/
 ```
 
 ---

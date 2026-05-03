@@ -5,11 +5,11 @@ import pytest
 
 from app.core.clients.http_client import BaseHTTPClient, HTTPStatusError
 from app.core.clients.polygon_client import (
-    DailyOpenClose,
     PolygonAuthError,
     PolygonClient,
     PolygonValidationError,
 )
+from app.schemas.domain_schema import DailyOpenClose
 
 VALID_PAYLOAD = {
     "status": "OK",
@@ -68,7 +68,7 @@ async def test_uses_yesterday_date_when_trade_date_is_none():
 
 
 async def test_raises_polygon_auth_error_on_401():
-    mock_get = AsyncMock(side_effect=HTTPStatusError("HTTP 401 Unauthorized"))
+    mock_get = AsyncMock(side_effect=HTTPStatusError("HTTP 401 Unauthorized", status_code=401))
     client = _make_client(mock_get)
 
     with pytest.raises(PolygonAuthError):

@@ -6,10 +6,8 @@ from fastapi.testclient import TestClient
 
 from app.api.v1.api import api_router
 from app.api.v1.deps import get_stock_service
-from app.core.clients.polygon_client import DailyOpenClose
-from app.core.clients.scrapper import PerformanceMetrics
 from app.core.config import settings
-from app.schemas.domain_schema import StockSummaryDomain
+from app.schemas.domain_schema import DailyOpenClose, PerformanceMetrics, StockSummaryDomain
 from app.services.stock_service import StockService
 
 

@@ -26,4 +26,3 @@ class StockService:
 
     async def post_stock_summary(self, symbol: str, amount: int) -> None:
         await self.repository.add_amount(symbol, amount)
-        return None

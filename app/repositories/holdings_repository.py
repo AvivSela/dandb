@@ -73,9 +73,8 @@ class StockHoldingsRepository:
     async def delete(self, symbol: str) -> bool:
         # Adding .returning ensures we get the symbol back if it existed
         stmt = delete(UserStock).where(UserStock.stock_symbol == symbol).returning(UserStock.stock_symbol)
-        async with self._session_factory() as session:
-            async with session.begin():
-                result = await session.execute(stmt)
-                # .scalar() returns the first column of the first row, or None
-                deleted_symbol = result.scalar()
-                return deleted_symbol is not None
+        async with self._session_factory.begin() as session:
+            result = await session.execute(stmt)
+            # .scalar() returns the first column of the first row, or None
+            deleted_symbol = result.scalar()
+            return deleted_symbol is not None

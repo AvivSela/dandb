@@ -1,10 +1,10 @@
 import asyncio
-from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
 import logging
 
 from app.core.clients.http_client import BaseHTTPClient, HTTPStatusError
+from app.schemas.domain_schema import PerformanceMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -35,23 +35,10 @@ DEFAULT_REQUEST_HEADERS = {
 }
 
 
-@dataclass(frozen=True)
-class PerformanceMetrics:
-    period_5_day: str
-    period_1_month: str
-    period_3_month: str
-    ytd: str
-    period_1_year: str
-
-    @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "PerformanceMetrics":
-        return cls(**{field: data.get(key, '0.00%') for key, field in _PERIOD_MAP.items()})
-
-
 class MarketWatchScraper:
     _api_url = "https://www.marketwatch.com/investing/stock"
 
-    def __init__(self, client: BaseHTTPClient | None = None, request_headers: dict | None = None, timeout: int = 10):
+    def __init__(self, client: BaseHTTPClient | None = None, request_headers: dict[str, str] | None = None, timeout: int = 10):
         self._client = client or BaseHTTPClient(
             headers=request_headers or DEFAULT_REQUEST_HEADERS,
             timeout=timeout,
@@ -76,7 +63,7 @@ class MarketWatchScraper:
             None, self._parse_performance_data, request_text
         )
 
-        metrics = PerformanceMetrics.from_dict(performance)
+        metrics = PerformanceMetrics(**{field: performance.get(key, '0.00%') for key, field in _PERIOD_MAP.items()})
         logger.info("Scraped %d/%d periods for %s", len(performance), len(_PERIOD_MAP), stock_symbol)
         return metrics
 

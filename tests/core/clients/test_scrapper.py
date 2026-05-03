@@ -5,9 +5,9 @@ import pytest
 from app.core.clients.scrapper import (
     MarketWatchScraper,
     PerformanceDataParseError,
-    PerformanceMetrics,
     StockFetchError,
 )
+from app.schemas.domain_schema import PerformanceMetrics
 
 _FULL_HTML = """
 <html><body><table>
@@ -79,16 +79,14 @@ async def test_scrape_raises_stock_fetch_error_on_http_failure():
         await scraper.scrape_performance_metrics("AAPL")
 
 
-def test_performance_metrics_from_dict_maps_marketwatch_keys():
-    data = {
-        "5 Day": "+1.00%",
-        "1 Month": "+2.00%",
-        "3 Month": "+3.00%",
-        "YTD": "+4.00%",
-        "1 Year": "+5.00%",
-    }
-
-    metrics = PerformanceMetrics.from_dict(data)
+def test_performance_metrics_stores_fields():
+    metrics = PerformanceMetrics(
+        period_5_day="+1.00%",
+        period_1_month="+2.00%",
+        period_3_month="+3.00%",
+        ytd="+4.00%",
+        period_1_year="+5.00%",
+    )
 
     assert metrics.period_5_day == "+1.00%"
     assert metrics.period_1_month == "+2.00%"

@@ -2,10 +2,20 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class PostStockRequest(BaseModel):
-    amount: int
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"amount": 50}}
+    )
+    amount: int = Field(gt=0)
 
 
 class PostStockResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "message": "50 units of stock AAPL were added to your stock record"
+            }
+        }
+    )
     message: str
 
     @classmethod

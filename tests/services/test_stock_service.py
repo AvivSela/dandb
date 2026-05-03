@@ -2,10 +2,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.core.clients.polygon_client import DailyOpenClose, PolygonClient
-from app.core.clients.scrapper import MarketWatchScraper, PerformanceMetrics
+from app.core.clients.polygon_client import PolygonClient
+from app.core.clients.scrapper import MarketWatchScraper
 from app.repositories.holdings_repository import StockHoldingsRepository
-from app.schemas.domain_schema import StockSummaryDomain
+from app.schemas.domain_schema import DailyOpenClose, PerformanceMetrics, StockSummaryDomain
 from app.services.stock_service import StockService
 
 

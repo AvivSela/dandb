@@ -1,12 +1,13 @@
 import logging
 import os
-from dataclasses import dataclass
 from datetime import date, timedelta
 from urllib.parse import quote
 
 from anyio.functools import lru_cache
+from pydantic import SecretStr
 
 from app.core.clients.http_client import BaseHTTPClient, HTTPStatusError
+from app.schemas.domain_schema import DailyOpenClose
 
 logger = logging.getLogger(__name__)
 
@@ -31,45 +32,18 @@ class PolygonAPIError(PolygonError):
         self.status_code = status_code
 
 
-@dataclass(frozen=True)
-class DailyOpenClose:
-    status: str
-    symbol: str
-    trade_date: str
-    open_price: float
-    high: float
-    low: float
-    close: float
-    volume: float
-    after_hours: float | None
-    pre_market: float | None
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "DailyOpenClose":
-        return cls(
-            status=data["status"],
-            symbol=data["symbol"],
-            trade_date=data["from"],
-            open_price=data["open"],
-            high=data["high"],
-            low=data["low"],
-            close=data["close"],
-            volume=data["volume"],
-            after_hours=data.get("afterHours"),
-            pre_market=data.get("preMarket"),
-        )
-
-
 class PolygonClient:
     BASE_URL = "https://api.polygon.io"
 
-    def __init__(self, api_key: str | None = None, timeout: int = 10, http_client: BaseHTTPClient | None = None):
-        self.api_key = api_key or os.environ.get("POLYGON_API_KEY")
-        if not self.api_key:
-            raise PolygonAuthError("API key must be provided or set in POLYGON_API_KEY env var")
+    def __init__(self, api_key: SecretStr, timeout: int = 10, http_client: BaseHTTPClient | None = None):
+        if not api_key:
+            raise PolygonAuthError("API key must be provided")
+
+        self.api_key = api_key
+
 
         self._client = http_client or BaseHTTPClient(
-            headers={"Authorization": f"Bearer {self.api_key}"},
+            headers={"Authorization": f"Bearer {self.api_key.get_secret_value()}"},
             timeout=timeout
             )
         self._cacheable_request_for_open_close = lru_cache(maxsize=1024)(self._fetch)
@@ -89,11 +63,23 @@ class PolygonClient:
         try:
             response = await self._client.get(url)
         except HTTPStatusError as exc:
-            if "401" in str(exc):
+            if exc.status_code == 401:
                 raise PolygonAuthError(str(exc)) from exc
-            raise PolygonAPIError(str(exc)) from exc
+            raise PolygonAPIError(str(exc), status_code=exc.status_code) from exc
 
-        res = DailyOpenClose.from_dict(response.json())
+        data = response.json()
+        res = DailyOpenClose(
+            status=data["status"],
+            symbol=data["symbol"],
+            trade_date=data["from"],
+            open_price=data["open"],
+            high=data["high"],
+            low=data["low"],
+            close=data["close"],
+            volume=data["volume"],
+            after_hours=data.get("afterHours"),
+            pre_market=data.get("preMarket"),
+        )
         if res.status != "OK":
             raise PolygonAPIError(f"Unexpected API status: {res.status}")
 

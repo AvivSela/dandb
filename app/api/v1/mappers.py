@@ -5,10 +5,6 @@ from app.schemas.stock_schemas import GetStockResponse, Performance
 
 
 def map_domain_to_response(domain: StockSummaryDomain) -> GetStockResponse:
-    """
-    Transforms the nested StockSummaryDomain into a flattened GetStockResponse.
-    This handles the logic of mapping 'daily_snapshot' fields to the top level.
-    """
     return GetStockResponse(
         # Top-level mapping
         symbol=domain.daily_snapshot.symbol,

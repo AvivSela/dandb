@@ -6,6 +6,10 @@ from sqlalchemy.pool import StaticPool
 from app.models.models import Base, UserStock
 
 
+class InsufficientFundsException(Exception):
+    pass
+
+
 class StockHoldingsRepository:
     def __init__(self, engine: AsyncEngine) -> None:
         self._engine = engine
@@ -48,18 +52,6 @@ class StockHoldingsRepository:
         async with self._session_factory.begin() as session:
             await session.execute(stmt)
 
-    async def old_add_amount(self, symbol: str, amount: int) -> None:
-        stmt = (
-            sqlite_insert(UserStock)
-            .values(stock_symbol=symbol, amount=amount)
-            .on_conflict_do_update(
-                index_elements=["stock_symbol"],
-                set_={"amount": UserStock.amount + amount},
-            )
-        )
-        async with self._session_factory.begin() as session:
-            await session.execute(stmt)
-
     async def increase_balance(self, symbol: str, amount: int) -> None:
         if amount <= 0:
             raise ValueError("Amount must be positive for increase_balance")
@@ -94,8 +86,8 @@ class StockHoldingsRepository:
 
             if updated_amount is None:
                 # This triggers if the symbol doesn't exist OR amount < amount_to_deduct
-                raise ValueError(
-                    f"Deduction failed for {symbol}: Insufficient funds or symbol not found."
+                raise InsufficientFundsException(
+                    f"Deduction failed for {symbol}: Insufficient funds."
                 )
 
     async def get(self, symbol: str) -> int | None:

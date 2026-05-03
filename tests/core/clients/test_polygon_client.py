@@ -98,6 +98,37 @@ async def test_caches_identical_calls():
     assert mock_get.call_count == 1
 
 
-def test_format_trade_date_formats_date_object():
-    result = PolygonClient._format_trade_date(date(2024, 3, 5))
-    assert result == "2024-03-05"
+def test_calculate_trade_date_returns_day_before_given_date():
+    # Tuesday → Monday
+    result = PolygonClient._calculate_trade_date_before_given_date(date(2024, 3, 5))
+    assert result == "2024-03-04"
+
+
+def test_calculate_trade_date_skips_weekend_when_given_monday():
+    # Monday → previous Friday
+    result = PolygonClient._calculate_trade_date_before_given_date(date(2024, 3, 4))
+    assert result == "2024-03-01"
+
+
+def test_calculate_trade_date_skips_weekend_when_given_saturday():
+    # Saturday → previous Friday
+    result = PolygonClient._calculate_trade_date_before_given_date(date(2024, 3, 2))
+    assert result == "2024-03-01"
+
+
+def test_calculate_trade_date_skips_weekend_when_given_sunday():
+    # Sunday → previous Friday
+    result = PolygonClient._calculate_trade_date_before_given_date(date(2024, 3, 3))
+    assert result == "2024-03-01"
+
+
+async def test_uses_last_friday_when_trade_date_is_none_and_today_is_monday():
+    mock_get = AsyncMock(return_value=_ok_response(VALID_PAYLOAD))
+    client = _make_client(mock_get)
+
+    with patch("app.core.clients.polygon_client.date") as mock_date_cls:
+        mock_date_cls.today.return_value = date(2024, 3, 4)  # Monday
+        await client.get_daily_open_close("WEEKEND")
+
+    url = mock_get.call_args[0][0]
+    assert "2024-03-01" in url

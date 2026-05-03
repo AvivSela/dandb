@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import urllib
 from urllib.parse import quote
 
 from bs4 import BeautifulSoup
@@ -53,7 +52,7 @@ class MarketWatchScraper:
         )
 
     async def _fetch_stock_page(self, stock_symbol: str) -> str:
-        symbol = quote(stock_symbol, safe='')
+        symbol = quote(stock_symbol, safe="")
         url = f"{self._api_url}/{symbol}"
         logger.info("Fetching stock page for %s from %s", stock_symbol, url)
         try:

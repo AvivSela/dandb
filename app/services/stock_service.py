@@ -1,8 +1,14 @@
 import asyncio
 
+from fastapi import HTTPException
+from starlette import status
+
 from app.core.clients.polygon_client import PolygonClient
 from app.core.clients.scrapper import MarketWatchScraper
-from app.repositories.holdings_repository import StockHoldingsRepository
+from app.repositories.holdings_repository import (
+    InsufficientFundsException,
+    StockHoldingsRepository,
+)
 from app.schemas.domain_schema import StockSummaryDomain
 
 
@@ -32,5 +38,14 @@ class StockService:
         if amount > 0:
             await self.repository.increase_balance(symbol, amount)
         if amount < 0:
-            await self.repository.decrease_balance(symbol, abs(amount))
-
+            try:
+                await self.repository.decrease_balance(symbol, abs(amount))
+            except InsufficientFundsException as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "error": "INSUFFICIENT_FUNDS",
+                        "message": f"Deduction failed for {symbol}.",
+                        "required_amount": abs(amount),
+                    },
+                ) from e

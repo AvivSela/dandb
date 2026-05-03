@@ -56,7 +56,7 @@ class PolygonClient:
     ) -> DailyOpenClose:
         if not stock_symbol or not stock_symbol.strip():
             raise PolygonValidationError("stock_symbol must be a non-empty string")
-        trade_date = self._format_trade_date(trade_date)
+        trade_date = self._calculate_trade_date_before_given_date(trade_date)
         return await self._cacheable_request_for_open_close(stock_symbol, trade_date)
 
     async def _fetch(self, stock_symbol: str, trade_date: str) -> DailyOpenClose:
@@ -89,13 +89,20 @@ class PolygonClient:
         return res
 
     @staticmethod
-    def _format_trade_date(trade_date: date | None):
-        if trade_date is None:
-            trade_date = date.today() - timedelta(days=1)
-        return trade_date.strftime("%Y-%m-%d")
+    def _calculate_trade_date_before_given_date(a_date: date | None):
+        a_date = a_date or date.today()
+        trade_date_before = get_last_weekday(a_date)
+        return trade_date_before.strftime("%Y-%m-%d")
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, *_):
         await self._client.aclose()
+
+
+def get_last_weekday(a_date: date):
+    target_date = a_date - timedelta(days=1)
+    while target_date.weekday() > 4:
+        target_date -= timedelta(days=1)
+    return target_date

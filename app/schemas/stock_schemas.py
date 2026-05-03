@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class PostStockRequest(BaseModel):
     model_config = ConfigDict(json_schema_extra={"example": {"amount": 50}})
-    amount: int = Field(gt=0)
+    amount: int
 
 
 class PostStockResponse(BaseModel):
@@ -11,7 +11,6 @@ class PostStockResponse(BaseModel):
         json_schema_extra={
             "example": {
                 "message": "Order Executed: BUY 50 AAPL. Your holdings have been updated."
-
             }
         }
     )
@@ -20,7 +19,9 @@ class PostStockResponse(BaseModel):
     @classmethod
     def create_from(cls, symbol: str, amount: int):
         if amount == 0:
-            return cls(message=f"No changes were made to your {symbol.upper()} holdings.")
+            return cls(
+                message=f"No changes were made to your {symbol.upper()} holdings."
+            )
 
         side = "BUY" if amount > 0 else "SELL"
         return cls(

@@ -5,7 +5,11 @@ import pytest
 from app.core.clients.polygon_client import PolygonClient
 from app.core.clients.scrapper import MarketWatchScraper
 from app.repositories.holdings_repository import StockHoldingsRepository
-from app.schemas.domain_schema import DailyOpenClose, PerformanceMetrics, StockSummaryDomain
+from app.schemas.domain_schema import (
+    DailyOpenClose,
+    PerformanceMetrics,
+    StockSummaryDomain,
+)
 from app.services.stock_service import StockService
 
 
@@ -70,11 +74,10 @@ async def test_get_stock_summary_returns_assembled_response(service, mock_repo):
     assert result.performance.period_5_day == "+1.00%"
 
 
-
-async def test_get_stock_summary_calls_clients_concurrently(service, mock_polygon, mock_scraper):
+async def test_get_stock_summary_calls_clients_concurrently(
+    service, mock_polygon, mock_scraper
+):
     await service.get_stock_summary("AAPL")
 
     mock_polygon.get_daily_open_close.assert_called_once()
     mock_scraper.scrape_performance_metrics.assert_called_once()
-
-

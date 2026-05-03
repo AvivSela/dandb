@@ -1,5 +1,9 @@
 from app.api.v1.mappers import map_domain_to_response
-from app.schemas.domain_schema import DailyOpenClose, PerformanceMetrics, StockSummaryDomain
+from app.schemas.domain_schema import (
+    DailyOpenClose,
+    PerformanceMetrics,
+    StockSummaryDomain,
+)
 from app.schemas.stock_schemas import PostStockResponse
 
 

@@ -1,4 +1,4 @@
-from sqlalchemy import delete, select, event
+from sqlalchemy import delete, event, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
@@ -41,7 +41,9 @@ class StockHoldingsRepository:
         stmt = (
             sqlite_insert(UserStock)
             .values(stock_symbol=symbol, amount=amount)
-            .on_conflict_do_update(index_elements=["stock_symbol"], set_={"amount": amount})
+            .on_conflict_do_update(
+                index_elements=["stock_symbol"], set_={"amount": amount}
+            )
         )
         async with self._session_factory.begin() as session:
             await session.execute(stmt)
@@ -72,7 +74,11 @@ class StockHoldingsRepository:
 
     async def delete(self, symbol: str) -> bool:
         # Adding .returning ensures we get the symbol back if it existed
-        stmt = delete(UserStock).where(UserStock.stock_symbol == symbol).returning(UserStock.stock_symbol)
+        stmt = (
+            delete(UserStock)
+            .where(UserStock.stock_symbol == symbol)
+            .returning(UserStock.stock_symbol)
+        )
         async with self._session_factory.begin() as session:
             result = await session.execute(stmt)
             # .scalar() returns the first column of the first row, or None

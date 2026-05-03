@@ -1,12 +1,12 @@
-from contextlib import asynccontextmanager, AsyncExitStack
+from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI
 
 # Local imports
 from app.api.v1.api import api_router
-from app.core.config import settings
 from app.core.clients.polygon_client import PolygonClient
 from app.core.clients.scrapper import MarketWatchScraper
+from app.core.config import settings
 from app.repositories.holdings_repository import StockHoldingsRepository
 
 
@@ -15,8 +15,14 @@ def get_application() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         async with AsyncExitStack() as stack:
-            polygon = await stack.enter_async_context(PolygonClient(settings.POLYGON_API_KEY, timeout=settings.HTTP_REQUEST_TIMEOUT))
-            scraper = await stack.enter_async_context(MarketWatchScraper(timeout=settings.HTTP_REQUEST_TIMEOUT))
+            polygon = await stack.enter_async_context(
+                PolygonClient(
+                    settings.POLYGON_API_KEY, timeout=settings.HTTP_REQUEST_TIMEOUT
+                )
+            )
+            scraper = await stack.enter_async_context(
+                MarketWatchScraper(timeout=settings.HTTP_REQUEST_TIMEOUT)
+            )
             repository = await StockHoldingsRepository.create(settings.DATABASE_URL)
 
             app.state.polygon = polygon
@@ -30,7 +36,7 @@ def get_application() -> FastAPI:
         lifespan=lifespan,
         title=settings.PROJECT_NAME,
         version=settings.VERSION,
-        openapi_url=f"{settings.API_V1_STR}/openapi.json"
+        openapi_url=f"{settings.API_V1_STR}/openapi.json",
     )
 
     _app.include_router(api_router, prefix=settings.API_V1_STR)

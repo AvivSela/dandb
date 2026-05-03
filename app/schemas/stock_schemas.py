@@ -2,9 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class PostStockRequest(BaseModel):
-    model_config = ConfigDict(
-        json_schema_extra={"example": {"amount": 50}}
-    )
+    model_config = ConfigDict(json_schema_extra={"example": {"amount": 50}})
     amount: int = Field(gt=0)
 
 
@@ -20,7 +18,9 @@ class PostStockResponse(BaseModel):
 
     @classmethod
     def create_from(cls, symbol: str, amount: int):
-        return cls(message=f"{amount} units of stock {symbol.upper()} were added to your stock record")
+        return cls(
+            message=f"{amount} units of stock {symbol.upper()} were added to your stock record"
+        )
 
 
 class Performance(BaseModel):
@@ -52,10 +52,10 @@ class GetStockResponse(BaseModel):
                     "period_1_month": "-0.5%",
                     "period_3_month": "+5.8%",
                     "ytd": "+12.4%",
-                    "period_1_year": "+20.1%"
-                }
+                    "period_1_year": "+20.1%",
+                },
             }
-        }
+        },
     )
     symbol: str
     amount: int = 0

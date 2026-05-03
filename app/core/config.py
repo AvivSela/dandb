@@ -1,6 +1,7 @@
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Stocks REST API"
     VERSION: str = "0.1.0"
@@ -11,10 +12,9 @@ class Settings(BaseSettings):
     POLYGON_API_KEY: SecretStr | None = None
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        case_sensitive=True,
-        extra="ignore"
+        env_file=".env", case_sensitive=True, extra="ignore"
     )
+
 
 # Instantiate the settings object
 settings = Settings()

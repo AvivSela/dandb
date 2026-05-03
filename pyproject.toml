@@ -1,0 +1,28 @@
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes (unused imports, undefined names, etc.)
+    "I",     # isort (import ordering)
+    "UP",    # pyupgrade (modernize syntax for py310+)
+    "ASYNC", # flake8-async (blocking calls in async, bad async patterns)
+    "B",     # flake8-bugbear (likely bugs and design issues)
+    "C4",    # flake8-comprehensions (unnecessary list/dict/set calls)
+    "SIM",   # flake8-simplify (simplifiable code patterns)
+]
+ignore = [
+    "E501",   # line too long — handled by formatter
+    "SIM108", # ternary operator — sometimes less readable
+    "B008",   # Depends() in default args — this is the FastAPI DI pattern
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

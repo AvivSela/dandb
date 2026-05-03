@@ -1,5 +1,4 @@
 import logging
-import os
 from datetime import date, timedelta
 from urllib.parse import quote
 
@@ -35,26 +34,30 @@ class PolygonAPIError(PolygonError):
 class PolygonClient:
     BASE_URL = "https://api.polygon.io"
 
-    def __init__(self, api_key: SecretStr, timeout: int = 10, http_client: BaseHTTPClient | None = None):
+    def __init__(
+        self,
+        api_key: SecretStr,
+        timeout: int = 10,
+        http_client: BaseHTTPClient | None = None,
+    ):
         if not api_key:
             raise PolygonAuthError("API key must be provided")
 
         self.api_key = api_key
 
-
         self._client = http_client or BaseHTTPClient(
             headers={"Authorization": f"Bearer {self.api_key.get_secret_value()}"},
-            timeout=timeout
-            )
+            timeout=timeout,
+        )
         self._cacheable_request_for_open_close = lru_cache(maxsize=1024)(self._fetch)
 
-
-    async def get_daily_open_close(self, stock_symbol: str, trade_date: date | None = None) -> DailyOpenClose:
+    async def get_daily_open_close(
+        self, stock_symbol: str, trade_date: date | None = None
+    ) -> DailyOpenClose:
         if not stock_symbol or not stock_symbol.strip():
             raise PolygonValidationError("stock_symbol must be a non-empty string")
         trade_date = self._format_trade_date(trade_date)
         return await self._cacheable_request_for_open_close(stock_symbol, trade_date)
-
 
     async def _fetch(self, stock_symbol: str, trade_date: str) -> DailyOpenClose:
         logger.debug("cache miss for %s %s", stock_symbol, trade_date)
@@ -84,8 +87,6 @@ class PolygonClient:
             raise PolygonAPIError(f"Unexpected API status: {res.status}")
 
         return res
-
-
 
     @staticmethod
     def _format_trade_date(trade_date: date | None):

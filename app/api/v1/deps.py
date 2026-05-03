@@ -1,32 +1,35 @@
-from fastapi import Depends, Request, HTTPException
+from fastapi import Depends, HTTPException, Request
 
-from app.services.stock_service import StockService
 from app.core.clients.polygon_client import PolygonClient
 from app.core.clients.scrapper import MarketWatchScraper
 from app.repositories.holdings_repository import StockHoldingsRepository
+from app.services.stock_service import StockService
+
 
 def get_repository(request: Request) -> StockHoldingsRepository:
     repo = getattr(request.app.state, "repository", None)
     if not repo:
-        raise HTTPException(status_code=500, detail="Repository not initialized in application state")
+        raise HTTPException(
+            status_code=500, detail="Repository not initialized in application state"
+        )
     return repo
+
 
 def get_polygon_client(request: Request) -> PolygonClient:
     polygon = getattr(request.app.state, "polygon", None)
     if not polygon:
         raise HTTPException(
-            status_code=500,
-            detail="PolygonClient not initialized in application state"
+            status_code=500, detail="PolygonClient not initialized in application state"
         )
     return polygon
+
 
 def get_scraper(request: Request) -> MarketWatchScraper:
 
     scraper = getattr(request.app.state, "scraper", None)
     if not scraper:
         raise HTTPException(
-            status_code=500,
-            detail="scraper not initialized in application state"
+            status_code=500, detail="scraper not initialized in application state"
         )
     return scraper
 

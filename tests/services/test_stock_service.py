@@ -70,13 +70,6 @@ async def test_get_stock_summary_returns_assembled_response(service, mock_repo):
     assert result.performance.period_5_day == "+1.00%"
 
 
-async def test_get_stock_summary_normalizes_symbol(service, mock_polygon, mock_scraper, mock_repo):
-    await service.get_stock_summary(" wix ")
-
-    mock_polygon.get_daily_open_close.assert_called_once_with("WIX")
-    mock_scraper.scrape_performance_metrics.assert_called_once_with("WIX")
-    mock_repo.get.assert_called_once_with("WIX")
-
 
 async def test_get_stock_summary_calls_clients_concurrently(service, mock_polygon, mock_scraper):
     await service.get_stock_summary("AAPL")
@@ -85,7 +78,3 @@ async def test_get_stock_summary_calls_clients_concurrently(service, mock_polygo
     mock_scraper.scrape_performance_metrics.assert_called_once()
 
 
-async def test_post_stock_summary_calls_add_amount_with_normalized_symbol(service, mock_repo):
-    await service.post_stock_summary(" wix ", 7)
-
-    mock_repo.add_amount.assert_called_once_with("WIX", 7)

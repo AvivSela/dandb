@@ -15,17 +15,15 @@ class StockService:
         self.scraper = scraper
 
     async def get_stock_summary(self, symbol: str) -> StockSummaryDomain:
-        normalized_symbol = symbol.strip().upper()
         daily_open_close, metrics, amount = await asyncio.gather(
-            self.polygon_client.get_daily_open_close(normalized_symbol),
-            self.scraper.scrape_performance_metrics(normalized_symbol),
-            self.repository.get(normalized_symbol)
+            self.polygon_client.get_daily_open_close(symbol),
+            self.scraper.scrape_performance_metrics(symbol),
+            self.repository.get(symbol)
         )
 
         return StockSummaryDomain(performance=metrics,daily_snapshot=daily_open_close, amount=amount or 0)
 
 
     async def post_stock_summary(self, symbol: str, amount: int) -> None:
-        normalized_symbol = symbol.strip().upper()
-        await self.repository.add_amount(normalized_symbol, amount)
+        await self.repository.add_amount(symbol, amount)
         return None

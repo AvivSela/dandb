@@ -43,5 +43,5 @@ app = get_application()
 
 
 @app.get("/health", tags=["health"])
-def health_check():
+async def health_check():
     return {"status": "ok", "database": "sqlite"}

@@ -3,12 +3,7 @@ from fastapi import Depends, Request, HTTPException
 from app.services.stock_service import StockService
 from app.core.clients.polygon_client import PolygonClient
 from app.core.clients.scrapper import MarketWatchScraper
-from app.core.config import settings
 from app.repositories.holdings_repository import StockHoldingsRepository
-
-
-
-
 
 def get_repository(request: Request) -> StockHoldingsRepository:
     repo = getattr(request.app.state, "repository", None)
@@ -36,10 +31,9 @@ def get_scraper(request: Request) -> MarketWatchScraper:
     return scraper
 
 
-def get_stock_service(repository: StockHoldingsRepository = Depends(get_repository),
-             polygon_client: PolygonClient = Depends(get_polygon_client),
-             scraper: MarketWatchScraper = Depends(get_scraper)) -> StockService:
-
-
-
+def get_stock_service(
+    repository: StockHoldingsRepository = Depends(get_repository),
+    polygon_client: PolygonClient = Depends(get_polygon_client),
+    scraper: MarketWatchScraper = Depends(get_scraper),
+) -> StockService:
     return StockService(repository, polygon_client, scraper)

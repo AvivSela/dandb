@@ -72,15 +72,18 @@ class MarketWatchScraper:
         soup = BeautifulSoup(html_content, 'html.parser')
         performance_data: dict[str, str] = {}
 
-        cells = soup.find_all('td', class_='table__cell')
-        for i, cell in enumerate(cells):
-            text = cell.get_text(strip=True)
+        for row in soup.find_all('tr'):
+            label_cell = row.find('td', class_='table__cell')
+            if label_cell is None:
+                continue
+            text = label_cell.get_text(strip=True)
             if text not in _PERIOD_MAP:
                 continue
-            if i + 1 >= len(cells):
+            value_cell = label_cell.find_next_sibling('td', class_='table__cell')
+            if not value_cell:
                 logger.warning("Could not parse period '%s' from HTML", text)
                 continue
-            value_element = cells[i + 1].find('li', class_='content__item value ignore-color')
+            value_element = value_cell.find('li', class_='content__item value ignore-color')
             if not value_element:
                 logger.warning("Could not parse period '%s' from HTML", text)
                 continue

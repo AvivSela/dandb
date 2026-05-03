@@ -67,6 +67,7 @@ async def get_stock(
 
 @router.post(
     "/{stock_symbol}",
+    status_code=201,
     summary="Modify Holding",
     response_description="Confirmation of the adjusted share amount for the requested symbol",
     responses={

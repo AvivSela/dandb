@@ -29,7 +29,9 @@ class BaseHTTPClient:
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
             await exc.response.aclose()
-            raise HTTPStatusError(f"HTTP {status} for {url}", status_code=status) from exc
+            raise HTTPStatusError(
+                f"HTTP {status} for {url}", status_code=status
+            ) from exc
 
     async def get(self, url: str) -> httpx.Response:
         for attempt in range(_MAX_RETRIES):

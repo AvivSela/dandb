@@ -73,10 +73,7 @@ class MarketWatchScraper:
         )
 
         metrics = PerformanceMetrics(
-            **{
-                field: performance[key]
-                for key, field in _PERIOD_MAP.items()
-            }
+            **{field: performance[key] for key, field in _PERIOD_MAP.items()}
         )
         logger.info(
             "Scraped %d/%d periods for %s",

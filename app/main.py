@@ -1,6 +1,7 @@
 import logging
 from contextlib import AsyncExitStack, asynccontextmanager
 
+import fastapi
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -32,7 +33,7 @@ async def _insufficient_funds_handler(
 ) -> JSONResponse:
     logger.warning("Insufficient funds for %s", exc.symbol)
     return JSONResponse(
-        status_code=400,
+        status_code=fastapi.status.HTTP_400_BAD_REQUEST,
         content=ErrorResponse(
             error="INSUFFICIENT_FUNDS",
             message=f"Insufficient shares to complete deduction for {exc.symbol}.",
@@ -45,7 +46,7 @@ async def _polygon_validation_handler(
 ) -> JSONResponse:
     logger.warning("Polygon validation error: %s", exc)
     return JSONResponse(
-        status_code=400,
+        status_code=fastapi.status.HTTP_400_BAD_REQUEST,
         content=ErrorResponse(
             error="INVALID_REQUEST",
             message="Invalid stock symbol provided.",
@@ -58,7 +59,7 @@ async def _polygon_auth_handler(
 ) -> JSONResponse:
     logger.error("Polygon auth error", exc_info=exc)
     return JSONResponse(
-        status_code=500,
+        status_code=fastapi.status.HTTP_503_SERVICE_UNAVAILABLE,
         content=ErrorResponse(
             error="SERVICE_UNAVAILABLE",
             message="Market data service is unavailable.",
@@ -67,10 +68,10 @@ async def _polygon_auth_handler(
 
 
 async def _polygon_api_handler(request: Request, exc: PolygonAPIError) -> JSONResponse:
-    if exc.status_code == 404:
+    if exc.status_code == fastapi.status.HTTP_404_NOT_FOUND:
         logger.warning("Symbol not found: %s", exc)
         return JSONResponse(
-            status_code=404,
+            status_code=fastapi.status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
                 error="SYMBOL_NOT_FOUND",
                 message="No market data found for the requested symbol.",
@@ -78,7 +79,7 @@ async def _polygon_api_handler(request: Request, exc: PolygonAPIError) -> JSONRe
         )
     logger.error("Polygon API error (status=%s)", exc.status_code, exc_info=exc)
     return JSONResponse(
-        status_code=502,
+        status_code=fastapi.status.HTTP_502_BAD_GATEWAY,
         content=ErrorResponse(
             error="MARKET_DATA_ERROR",
             message="Market data service returned an error.",
@@ -89,8 +90,9 @@ async def _polygon_api_handler(request: Request, exc: PolygonAPIError) -> JSONRe
 async def _validation_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
+    logger.warning("Request validation error: %s", exc.errors())
     return JSONResponse(
-        status_code=422,
+        status_code=fastapi.status.HTTP_422_UNPROCESSABLE_CONTENT,
         content=ErrorResponse(
             error="VALIDATION_ERROR",
             message="Request validation failed.",
@@ -103,7 +105,7 @@ async def _external_fetch_handler(
 ) -> JSONResponse:
     logger.error("External data error", exc_info=exc)
     return JSONResponse(
-        status_code=502,
+        status_code=fastapi.status.HTTP_502_BAD_GATEWAY,
         content=ErrorResponse(
             error="MARKET_DATA_UNAVAILABLE",
             message="Unable to retrieve stock performance data.",
@@ -114,7 +116,7 @@ async def _external_fetch_handler(
 def get_application() -> FastAPI:
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    async def lifespan(_app: FastAPI):
         async with AsyncExitStack() as stack:
             polygon = await stack.enter_async_context(
                 PolygonClient(
@@ -124,11 +126,13 @@ def get_application() -> FastAPI:
             scraper = await stack.enter_async_context(
                 MarketWatchScraper(timeout=settings.HTTP_REQUEST_TIMEOUT)
             )
-            repository = await StockHoldingsRepository.create(settings.DATABASE_URL)
+            repository = await stack.enter_async_context(
+                await StockHoldingsRepository.create(settings.DATABASE_URL)
+            )
 
-            app.state.polygon = polygon
-            app.state.scraper = scraper
-            app.state.repository = repository
+            _app.state.polygon = polygon
+            _app.state.scraper = scraper
+            _app.state.repository = repository
 
             yield
 
@@ -150,12 +154,11 @@ def get_application() -> FastAPI:
     _app.add_exception_handler(StockFetchError, _external_fetch_handler)
     _app.add_exception_handler(PerformanceDataParseError, _external_fetch_handler)
 
+    @_app.get("/health", tags=["health"])
+    async def health_check() -> dict[str, str]:
+        return {"status": "ok"}
+
     return _app
 
 
 app = get_application()
-
-
-@app.get("/health", tags=["health"])
-async def health_check() -> dict[str, str]:
-    return {"status": "ok"}

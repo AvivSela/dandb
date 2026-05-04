@@ -1,3 +1,5 @@
+from contextlib import AbstractAsyncContextManager
+
 from sqlalchemy import delete, event, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
@@ -12,7 +14,7 @@ class InsufficientFundsException(Exception):
         self.symbol = symbol
 
 
-class StockHoldingsRepository:
+class StockHoldingsRepository(AbstractAsyncContextManager):
     def __init__(self, engine: AsyncEngine) -> None:
         self._engine = engine
         self._session_factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -38,6 +40,9 @@ class StockHoldingsRepository:
         repo = cls(engine)
         await repo._init_db()
         return repo
+
+    async def __aexit__(self, *_) -> None:
+        await self._engine.dispose()
 
     async def _init_db(self) -> None:
         async with self._engine.begin() as conn:

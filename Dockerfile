@@ -20,17 +20,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
-# Non-root user
+# Non-root user + writable data dir
 RUN groupadd --system appgroup \
- && useradd --system --gid appgroup --no-create-home appuser
+ && useradd --system --gid appgroup --no-create-home appuser \
+ && mkdir -p /data && chown appuser:appgroup /data
 
 WORKDIR /app
 
-COPY app/ ./app/
-
-RUN chown -R appuser:appgroup /app
+COPY --chown=appuser:appgroup app/ ./app/
 
 USER appuser
+
+ENV DATABASE_URL=sqlite+aiosqlite:////data/sql_app.db
+
+VOLUME ["/data"]
 
 EXPOSE 8000
 

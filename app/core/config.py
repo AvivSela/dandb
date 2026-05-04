@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     HTTP_REQUEST_TIMEOUT: int = 10
 
-    DATABASE_URL: str = "./sql_app.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./sql_app.db"
     POLYGON_API_KEY: SecretStr
 
     model_config = SettingsConfigDict(

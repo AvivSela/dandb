@@ -1,4 +1,6 @@
-# CLAUDE.md — dandb
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
@@ -45,6 +47,8 @@ DATABASE_URL=sqlite+aiosqlite:///./sql_app.db   # optional, has a default
 .venv\Scripts\ruff.exe format app/ tests/
 ```
 
+Ruff rule **B008** ("function call in default args") is intentionally suppressed in `pyproject.toml` — `Depends()` in default args is the correct FastAPI DI pattern. Do not attempt to refactor it away.
+
 ---
 
 ## Test Commands
@@ -80,7 +84,7 @@ app/
 │   └── clients/
 │       ├── http_client.py           # BaseHTTPClient: retry logic (3 attempts, exp backoff)
 │       ├── polygon_client.py        # Polygon.io OHLC data, anyio lru_cache
-│       └── scrapper.py              # MarketWatch HTML scraper, BeautifulSoup
+│       └── scraper.py               # MarketWatch HTML scraper, BeautifulSoup
 ├── api/v1/
 │   ├── api.py                       # Router composition (include_router calls only)
 │   ├── deps.py                      # All Depends() functions — never define in endpoints
@@ -111,8 +115,6 @@ endpoints → services → repositories → models
 
 ## Coding Standards
 
-> Full rules live in `.clauderules`. This is the quick-reference summary.
-
 ### Python Style
 - **Python 3.10+** — use `X | Y` union syntax, never `Optional[X]` or `Union[X, Y]`
 - **Type hints everywhere** — all parameters and return types
@@ -133,27 +135,35 @@ endpoints → services → repositories → models
 - `Field(serialization_alias=...)` when JSON key differs from Python name (e.g. `"from"`, `"afterHours"`)
 - `json_schema_extra` with a realistic `"example"` block on response models
 - `serialize_by_alias=True` in `ConfigDict` when aliases are used
+- `PostStockResponse.create_from` is the established factory method for building responses from domain data
+
+### Settings
+- All config lives in `app/core/config.py`; never read `os.environ` directly
+- Optional secrets (e.g. `POLYGON_API_KEY`) should be typed `str | None = None` and validated at startup, not silently passed as `None`
 
 ### Dependency Injection
 - Singletons stored on `app.state` during lifespan; retrieved via `Depends`
 - All `Depends` functions in `deps.py` — never inside endpoint files
 - `HTTPException(status_code=500)` when a required `app.state` resource is missing
+- Never import clients or repositories directly inside endpoint functions
 
 ### Error Handling
 - Domain exceptions (`PolygonAPIError`, `StockFetchError`, etc.) bubble up; caught and re-raised as `HTTPException` **at the API layer only**
 - Never expose raw external service messages to API consumers
-- Register handlers in `main.py` with `app.add_exception_handler(...)`
+- Register handlers in `main.py` with `app.add_exception_handler(...)`; subclasses must be registered before their base class
 
 ### HTTP Clients
 - All clients extend `BaseHTTPClient`; retry/backoff is already handled — don't duplicate it
 - Never hard-code `timeout` — always pass it through
-- Clients are async context managers; enter via `AsyncExitStack` in lifespan only
+- Clients are async context managers; enter via `AsyncExitStack` in lifespan only; never create them inside request handlers
+- Do not store mutable state inside `BaseHTTPClient` or client subclasses (they are shared across requests)
 
 ### Database
 - All SQLAlchemy code stays in `app/repositories/` and `app/models/`
 - Upsert via `sqlite_insert(...).on_conflict_do_update(...)` — no manual select-then-insert
 - `async_sessionmaker(expire_on_commit=False)` to avoid detached-instance lazy-load errors
 - WAL mode set once in `StockHoldingsRepository.create` — no PRAGMA calls elsewhere
+- Pass `db_path=":memory:"` to `StockHoldingsRepository.create` for in-memory test databases (uses `StaticPool`)
 
 ### Testing
 - Repository tests use `StockHoldingsRepository.create(":memory:")` — real DB, no mocks
@@ -165,3 +175,13 @@ endpoints → services → repositories → models
 - Every endpoint must have `summary` and `response_description` in the decorator
 - Return type annotation (e.g. `-> GetStockResponse`) is the response schema source — omit `response_model=`
 - Tags must match what `api.py` declares in `include_router`
+
+---
+
+## What Not To Do
+
+- Do not add `response_model=` when a return type annotation already exists
+- Do not create new domain schema files per endpoint — domain objects go in `app/schemas/domain_schema.py`
+- Do not add a second router file without a matching `include_router` call in `api.py`
+- Do not bypass the service layer by calling the repository directly from an endpoint
+- Do not call clients or repository directly in endpoints — always use `Depends`

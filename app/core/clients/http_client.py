@@ -19,7 +19,7 @@ class BaseHTTPClient:
     def __init__(self, **kwargs):
         self._client = httpx.AsyncClient(**kwargs)
 
-    async def _try_once(self, url: str) -> httpx.Response:
+    async def _attempt_request(self, url: str) -> httpx.Response:
         try:
             response = await self._client.get(url)
             response.raise_for_status()
@@ -36,7 +36,7 @@ class BaseHTTPClient:
     async def get(self, url: str) -> httpx.Response:
         for attempt in range(_MAX_RETRIES):
             try:
-                return await self._try_once(url)
+                return await self._attempt_request(url)
             except HTTPStatusError as exc:
                 if (
                     exc.status_code is not None

@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path
 
 from app.api.v1.deps import get_stock_service
-from app.api.v1.mappers import map_stock_summary_to_detail_response
+from app.api.v1.mappers import to_detail_response
 from app.schemas.stock_schemas import (
     ErrorResponse,
     StockDetailResponse,
@@ -62,7 +62,7 @@ async def get_stock(
 ) -> StockDetailResponse:
     symbol = stock_symbol.strip().upper()
     domain = await service.get_stock_summary(symbol)
-    return map_stock_summary_to_detail_response(domain)
+    return to_detail_response(domain)
 
 
 @router.post(
@@ -90,4 +90,4 @@ async def post_stock(
 ) -> StockUpdateResponse:
     symbol = stock_symbol.strip().upper()
     await service.update_holding(symbol, request.amount)
-    return StockUpdateResponse.create_from(symbol, request.amount)
+    return StockUpdateResponse.build(symbol, request.amount)

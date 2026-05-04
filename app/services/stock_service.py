@@ -32,4 +32,4 @@ class StockService:
         if amount == 0:
             return
 
-        await self.repository.update_balance(symbol, amount)
+        await self.repository.update_holding(symbol, amount)

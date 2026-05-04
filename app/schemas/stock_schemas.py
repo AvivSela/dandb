@@ -50,7 +50,7 @@ class StockUpdateResponse(BaseModel):
     message: str
 
     @classmethod
-    def create_from(cls, symbol: str, amount: int) -> "StockUpdateResponse":
+    def build(cls, symbol: str, amount: int) -> "StockUpdateResponse":
         if amount == 0:
             return cls(
                 message=f"No changes were made to your {symbol.upper()} holdings."

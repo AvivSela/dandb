@@ -49,17 +49,17 @@ class PolygonClient:
             headers={"Authorization": f"Bearer {self._api_key.get_secret_value()}"},
             timeout=timeout,
         )
-        self._fetch_cached = lru_cache(maxsize=1024)(self._fetch)
+        self._fetch_open_close_cached = lru_cache(maxsize=1024)(self._fetch_open_close)
 
     async def get_daily_open_close(
         self, stock_symbol: str, trade_date: date | None = None
     ) -> DailyOpenClose:
         if not stock_symbol or not stock_symbol.strip():
             raise PolygonValidationError("stock_symbol must be a non-empty string")
-        trade_date = self._to_last_trade_date(trade_date)
-        return await self._fetch_cached(stock_symbol, trade_date)
+        trade_date = self._preceding_trade_date_str(trade_date)
+        return await self._fetch_open_close_cached(stock_symbol, trade_date)
 
-    async def _fetch(self, stock_symbol: str, trade_date: str) -> DailyOpenClose:
+    async def _fetch_open_close(self, stock_symbol: str, trade_date: str) -> DailyOpenClose:
         logger.debug("cache miss for %s %s", stock_symbol, trade_date)
         url = f"{self.BASE_URL}/v1/open-close/{quote(stock_symbol)}/{trade_date}"
 
@@ -91,9 +91,9 @@ class PolygonClient:
         )
 
     @staticmethod
-    def _to_last_trade_date(reference_date: date | None):
+    def _preceding_trade_date_str(reference_date: date | None):
         reference_date = reference_date or date.today()
-        trade_date_before = get_preceding_weekday(reference_date)
+        trade_date_before = _last_weekday_before(reference_date)
         return trade_date_before.strftime("%Y-%m-%d")
 
     async def __aenter__(self):
@@ -103,7 +103,7 @@ class PolygonClient:
         await self._client.aclose()
 
 
-def get_preceding_weekday(reference_date: date):
+def _last_weekday_before(reference_date: date):
     candidate = reference_date - timedelta(days=1)
     while candidate.weekday() > 4:
         candidate -= timedelta(days=1)

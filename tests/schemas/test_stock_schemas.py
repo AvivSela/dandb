@@ -1,4 +1,4 @@
-from app.api.v1.mappers import map_stock_summary_to_detail_response
+from app.api.v1.mappers import to_detail_response
 from app.schemas.domain_schema import (
     DailyOpenClose,
     PerformanceMetrics,
@@ -33,14 +33,14 @@ def _make_domain(amount: int = 5) -> StockSummaryDomain:
 
 
 def test_post_stock_response_create_from_formats_message():
-    response = StockUpdateResponse.create_from("aapl", 10)
+    response = StockUpdateResponse.build("aapl", 10)
 
     assert "AAPL" in response.message
     assert "10" in response.message
 
 
 def test_get_stock_response_serializes_field_aliases():
-    data = map_stock_summary_to_detail_response(_make_domain()).model_dump(
+    data = to_detail_response(_make_domain()).model_dump(
         by_alias=True
     )
 
@@ -51,7 +51,7 @@ def test_get_stock_response_serializes_field_aliases():
 
 
 def test_get_stock_response_maps_all_fields():
-    response = map_stock_summary_to_detail_response(_make_domain(amount=5))
+    response = to_detail_response(_make_domain(amount=5))
 
     assert response.symbol == "AAPL"
     assert response.amount == 5

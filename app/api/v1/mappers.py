@@ -2,7 +2,7 @@ from app.schemas.domain_schema import StockSummaryDomain
 from app.schemas.stock_schemas import Performance, StockDetailResponse
 
 
-def map_stock_summary_to_detail_response(
+def to_detail_response(
     domain: StockSummaryDomain,
 ) -> StockDetailResponse:
     return StockDetailResponse(

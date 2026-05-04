@@ -48,7 +48,7 @@ class StockHoldingsRepository(AbstractAsyncContextManager):
         async with self._engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    async def _upsert(self, symbol: str, amount: int) -> None:
+    async def _set_holding(self, symbol: str, amount: int) -> None:
         stmt = (
             sqlite_insert(UserStock)
             .values(stock_symbol=symbol, amount=amount)
@@ -59,13 +59,13 @@ class StockHoldingsRepository(AbstractAsyncContextManager):
         async with self._session_factory.begin() as session:
             await session.execute(stmt)
 
-    async def update_balance(self, symbol: str, amount: int) -> None:
+    async def update_holding(self, symbol: str, amount: int) -> None:
         if amount > 0:
-            await self._increase_balance(symbol=symbol, amount=amount)
+            await self._add_shares(symbol=symbol, amount=amount)
         else:
-            await self._decrease_balance(symbol=symbol, amount=abs(amount))
+            await self._subtract_shares(symbol=symbol, amount=abs(amount))
 
-    async def _increase_balance(self, symbol: str, amount: int) -> None:
+    async def _add_shares(self, symbol: str, amount: int) -> None:
         stmt = (
             sqlite_insert(UserStock)
             .values(stock_symbol=symbol, amount=amount)
@@ -77,7 +77,7 @@ class StockHoldingsRepository(AbstractAsyncContextManager):
         async with self._session_factory.begin() as session:
             await session.execute(stmt)
 
-    async def _decrease_balance(self, symbol: str, amount: int) -> None:
+    async def _subtract_shares(self, symbol: str, amount: int) -> None:
         stmt = (
             update(UserStock)
             .where(UserStock.stock_symbol == symbol)

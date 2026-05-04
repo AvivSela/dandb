@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, Path
 
 from app.core.clients.polygon_client import PolygonClient
 from app.core.clients.scraper import MarketWatchScraper
@@ -40,3 +40,7 @@ def get_stock_service(
     scraper: MarketWatchScraper = Depends(get_scraper),
 ) -> StockService:
     return StockService(repository, polygon_client, scraper)
+
+
+def normalize_symbol(stock_symbol: str = Path(min_length=1, max_length=10)) -> str:
+    return stock_symbol.strip().upper()

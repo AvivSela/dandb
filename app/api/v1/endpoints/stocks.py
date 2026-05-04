@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path
 
-from app.api.v1.deps import get_stock_service
+from app.api.v1.deps import get_stock_service, normalize_symbol
 from app.api.v1.mappers import to_detail_response
 from app.schemas.stock_schemas import (
     ErrorResponse,
@@ -58,9 +58,8 @@ def _openapi_error_entry(description: str, error: str, message: str) -> dict:
     },
 )
 async def get_stock(
-    stock_symbol: ShareSymbol, service: StockService = Depends(get_stock_service)
+        symbol: Annotated[str, Depends(normalize_symbol)], service: StockService = Depends(get_stock_service)
 ) -> StockDetailResponse:
-    symbol = stock_symbol.strip().upper()
     domain = await service.get_stock_summary(symbol)
     return to_detail_response(domain)
 
@@ -84,10 +83,9 @@ async def get_stock(
     },
 )
 async def post_stock(
-    stock_symbol: ShareSymbol,
+    symbol: Annotated[str, Depends(normalize_symbol)],
     request: StockUpdateRequest,
     service: StockService = Depends(get_stock_service),
 ) -> StockUpdateResponse:
-    symbol = stock_symbol.strip().upper()
     await service.update_holding(symbol, request.amount)
     return StockUpdateResponse.build(symbol, request.amount)

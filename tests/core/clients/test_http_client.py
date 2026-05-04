@@ -12,7 +12,7 @@ def _resp(status_code: int) -> MagicMock:
     r.aclose = AsyncMock()
     if status_code >= 400:
         r.raise_for_status.side_effect = httpx.HTTPStatusError(
-            f"HTTP {status_code}", request=MagicMock(), response=MagicMock()
+            f"HTTP {status_code}", request=MagicMock(), response=r
         )
     else:
         r.raise_for_status.return_value = None

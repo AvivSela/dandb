@@ -29,5 +29,7 @@ class StockService:
         )
 
     async def post_stock_summary(self, symbol: str, amount: int) -> None:
-        if amount != 0:
-            await self.repository.update_balance(symbol, amount)
+        if amount == 0:
+            return
+
+        await self.repository.update_balance(symbol, amount)

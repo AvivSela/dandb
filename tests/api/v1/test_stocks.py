@@ -62,7 +62,7 @@ def test_client(mock_service) -> TestClient:
 
 
 def test_get_stock_returns_200_with_body(test_client):
-    response = test_client.get("/api/v1/stocks/AAPL")
+    response = test_client.get("/api/v1/stock/AAPL")
 
     assert response.status_code == 200
     data = response.json()
@@ -71,10 +71,10 @@ def test_get_stock_returns_200_with_body(test_client):
     assert "open" in data
 
 
-def test_post_stock_returns_200(test_client):
-    response = test_client.post("/api/v1/stocks/AAPL", json={"amount": 5})
+def test_post_stock_returns_201(test_client):
+    response = test_client.post("/api/v1/stock/AAPL", json={"amount": 5})
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
 
 def test_health_returns_200(test_client):

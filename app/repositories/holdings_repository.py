@@ -43,7 +43,7 @@ class StockHoldingsRepository:
         async with self._engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    async def upsert(self, symbol: str, amount: int) -> None:
+    async def _upsert(self, symbol: str, amount: int) -> None:
         stmt = (
             sqlite_insert(UserStock)
             .values(stock_symbol=symbol, amount=amount)
@@ -61,9 +61,6 @@ class StockHoldingsRepository:
             await self._decrease_balance(symbol=symbol, amount=abs(amount))
 
     async def _increase_balance(self, symbol: str, amount: int) -> None:
-        if amount <= 0:
-            raise ValueError("Amount must be positive for increase_balance")
-
         stmt = (
             sqlite_insert(UserStock)
             .values(stock_symbol=symbol, amount=amount)
@@ -76,10 +73,6 @@ class StockHoldingsRepository:
             await session.execute(stmt)
 
     async def _decrease_balance(self, symbol: str, amount: int) -> None:
-        if amount <= 0:
-            raise ValueError("Amount must be positive for decrease_balance")
-
-        # We subtract the absolute 'amount' from the DB column
         stmt = (
             update(UserStock)
             .where(UserStock.stock_symbol == symbol)
@@ -93,7 +86,6 @@ class StockHoldingsRepository:
             updated_amount = result.scalar_one_or_none()
 
             if updated_amount is None:
-                # This triggers if the symbol doesn't exist OR amount < amount_to_deduct
                 raise InsufficientFundsException(symbol)
 
     async def get(self, symbol: str) -> int | None:
@@ -102,14 +94,7 @@ class StockHoldingsRepository:
             result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_all(self) -> list[tuple[str, int]]:
-        stmt = select(UserStock.stock_symbol, UserStock.amount)
-        async with self._session_factory() as session:
-            result = await session.execute(stmt)
-        return [(r.stock_symbol, r.amount) for r in result.all()]
-
-    async def delete(self, symbol: str) -> bool:
-        # Adding .returning ensures we get the symbol back if it existed
+    async def _delete(self, symbol: str) -> bool:
         stmt = (
             delete(UserStock)
             .where(UserStock.stock_symbol == symbol)
@@ -117,6 +102,5 @@ class StockHoldingsRepository:
         )
         async with self._session_factory.begin() as session:
             result = await session.execute(stmt)
-            # .scalar() returns the first column of the first row, or None
             deleted_symbol = result.scalar()
             return deleted_symbol is not None

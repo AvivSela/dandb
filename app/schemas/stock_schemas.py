@@ -9,6 +9,7 @@ ErrorCode = Literal[
     "SERVICE_UNAVAILABLE",
     "MARKET_DATA_ERROR",
     "MARKET_DATA_UNAVAILABLE",
+    "VALIDATION_ERROR",
 ]
 
 

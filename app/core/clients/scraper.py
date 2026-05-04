@@ -74,7 +74,7 @@ class MarketWatchScraper:
 
         metrics = PerformanceMetrics(
             **{
-                field: performance.get(key, "0.00%")
+                field: performance[key]
                 for key, field in _PERIOD_MAP.items()
             }
         )

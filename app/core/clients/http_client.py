@@ -1,6 +1,9 @@
 import asyncio
+import logging
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 _RETRY_STATUSES = {500, 502, 503}
 _MAX_RETRIES = 3
@@ -16,34 +19,37 @@ class BaseHTTPClient:
     def __init__(self, **kwargs):
         self._client = httpx.AsyncClient(**kwargs)
 
+    async def _try_once(self, url: str) -> httpx.Response:
+        try:
+            response = await self._client.get(url)
+            response.raise_for_status()
+            return response
+        except httpx.TransportError as exc:
+            raise HTTPStatusError(f"Transport error for {url}") from exc
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
+            await exc.response.aclose()
+            raise HTTPStatusError(f"HTTP {status} for {url}", status_code=status) from exc
+
     async def get(self, url: str) -> httpx.Response:
-        response = None
         for attempt in range(_MAX_RETRIES):
             try:
-                response = await self._client.get(url)
-            except httpx.TransportError as exc:
+                return await self._try_once(url)
+            except HTTPStatusError as exc:
+                if (
+                    exc.status_code is not None
+                    and exc.status_code not in _RETRY_STATUSES
+                ):
+                    raise
                 if attempt < _MAX_RETRIES - 1:
+                    logger.warning(
+                        "Request to %s failed (attempt %d/%d), retrying...",
+                        url,
+                        attempt + 1,
+                        _MAX_RETRIES,
+                    )
                     await asyncio.sleep(2**attempt)
-                    continue
-                raise HTTPStatusError(
-                    f"Request to {url} failed after {_MAX_RETRIES} attempts"
-                ) from exc
-            if response.status_code in _RETRY_STATUSES:
-                await response.aclose()
-                if attempt < _MAX_RETRIES - 1:
-                    await asyncio.sleep(2**attempt)
-                continue
-            try:
-                response.raise_for_status()
-                return response
-            except httpx.HTTPStatusError as exc:
-                raise HTTPStatusError(
-                    f"HTTP {response.status_code} for {url}",
-                    status_code=response.status_code,
-                ) from exc
-        raise HTTPStatusError(
-            f"Request to {url} failed after {_MAX_RETRIES} attempts: {response}"
-        )
+        raise HTTPStatusError(f"Request to {url} failed after {_MAX_RETRIES} attempts")
 
     async def aclose(self) -> None:
         await self._client.aclose()

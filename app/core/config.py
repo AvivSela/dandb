@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     HTTP_REQUEST_TIMEOUT: int = 10
 
     DATABASE_URL: str = "./sql_app.db"
-    POLYGON_API_KEY: SecretStr | None = None
+    POLYGON_API_KEY: SecretStr
 
     model_config = SettingsConfigDict(
         env_file=".env", case_sensitive=True, extra="ignore"

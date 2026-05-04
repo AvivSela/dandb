@@ -71,7 +71,13 @@ class PolygonClient:
             raise PolygonAPIError(str(exc), status_code=exc.status_code) from exc
 
         data = response.json()
-        res = DailyOpenClose(
+
+        status = data.get("status")
+
+        if status != "OK":
+            raise PolygonAPIError(f"Unexpected API status: {status}")
+
+        return DailyOpenClose(
             status=data["status"],
             symbol=data["symbol"],
             trade_date=data["from"],
@@ -83,15 +89,11 @@ class PolygonClient:
             after_hours=data.get("afterHours"),
             pre_market=data.get("preMarket"),
         )
-        if res.status != "OK":
-            raise PolygonAPIError(f"Unexpected API status: {res.status}")
-
-        return res
 
     @staticmethod
     def _calculate_trade_date_before_given_date(reference_date: date | None):
         reference_date = reference_date or date.today()
-        trade_date_before = get_last_weekday(reference_date)
+        trade_date_before = get_preceding_weekday(reference_date)
         return trade_date_before.strftime("%Y-%m-%d")
 
     async def __aenter__(self):
@@ -101,7 +103,7 @@ class PolygonClient:
         await self._client.aclose()
 
 
-def get_last_weekday(a_date: date):
+def get_preceding_weekday(a_date: date):
     target_date = a_date - timedelta(days=1)
     while target_date.weekday() > 4:
         target_date -= timedelta(days=1)

@@ -16,7 +16,7 @@ FROM python:3.13-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
-    DATABASE_URL=sqlite+aiosqlite:////data/sql_app.db
+    DATABASE_URL=/data/sql_app.db
 
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local

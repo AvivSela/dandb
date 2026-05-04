@@ -83,19 +83,19 @@ async def test_get_stock_summary_calls_clients_concurrently(
     mock_scraper.scrape_performance_metrics.assert_called_once()
 
 
-async def test_post_stock_summary_buy_calls_update_balance(service, mock_repo):
-    await service.post_stock_summary("AAPL", 10)
+async def test_update_holding_buy_calls_update_balance(service, mock_repo):
+    await service.update_holding("AAPL", 10)
 
     mock_repo.update_balance.assert_called_once_with("AAPL", 10)
 
 
-async def test_post_stock_summary_sell_calls_update_balance(service, mock_repo):
-    await service.post_stock_summary("AAPL", -5)
+async def test_update_holding_sell_calls_update_balance(service, mock_repo):
+    await service.update_holding("AAPL", -5)
 
     mock_repo.update_balance.assert_called_once_with("AAPL", -5)
 
 
-async def test_post_stock_summary_zero_calls_no_repo_method(service, mock_repo):
-    await service.post_stock_summary("AAPL", 0)
+async def test_update_holding_zero_skips_repo(service, mock_repo):
+    await service.update_holding("AAPL", 0)
 
     mock_repo.update_balance.assert_not_called()

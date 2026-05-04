@@ -43,21 +43,21 @@ class PolygonClient:
         if not api_key:
             raise PolygonAuthError("API key must be provided")
 
-        self.api_key = api_key
+        self._api_key = api_key
 
         self._client = http_client or BaseHTTPClient(
-            headers={"Authorization": f"Bearer {self.api_key.get_secret_value()}"},
+            headers={"Authorization": f"Bearer {self._api_key.get_secret_value()}"},
             timeout=timeout,
         )
-        self._cacheable_request_for_open_close = lru_cache(maxsize=1024)(self._fetch)
+        self._fetch_cached = lru_cache(maxsize=1024)(self._fetch)
 
     async def get_daily_open_close(
         self, stock_symbol: str, trade_date: date | None = None
     ) -> DailyOpenClose:
         if not stock_symbol or not stock_symbol.strip():
             raise PolygonValidationError("stock_symbol must be a non-empty string")
-        trade_date = self._calculate_trade_date_before_given_date(trade_date)
-        return await self._cacheable_request_for_open_close(stock_symbol, trade_date)
+        trade_date = self._to_last_trade_date(trade_date)
+        return await self._fetch_cached(stock_symbol, trade_date)
 
     async def _fetch(self, stock_symbol: str, trade_date: str) -> DailyOpenClose:
         logger.debug("cache miss for %s %s", stock_symbol, trade_date)
@@ -70,28 +70,28 @@ class PolygonClient:
                 raise PolygonAuthError(str(exc)) from exc
             raise PolygonAPIError(str(exc), status_code=exc.status_code) from exc
 
-        data = response.json()
+        payload = response.json()
 
-        status = data.get("status")
+        status = payload.get("status")
 
         if status != "OK":
             raise PolygonAPIError(f"Unexpected API status: {status}")
 
         return DailyOpenClose(
-            status=data["status"],
-            symbol=data["symbol"],
-            trade_date=data["from"],
-            open_price=data["open"],
-            high=data["high"],
-            low=data["low"],
-            close=data["close"],
-            volume=data["volume"],
-            after_hours=data.get("afterHours"),
-            pre_market=data.get("preMarket"),
+            status=payload["status"],
+            symbol=payload["symbol"],
+            trade_date=payload["from"],
+            open_price=payload["open"],
+            high=payload["high"],
+            low=payload["low"],
+            close=payload["close"],
+            volume=payload["volume"],
+            after_hours=payload.get("afterHours"),
+            pre_market=payload.get("preMarket"),
         )
 
     @staticmethod
-    def _calculate_trade_date_before_given_date(reference_date: date | None):
+    def _to_last_trade_date(reference_date: date | None):
         reference_date = reference_date or date.today()
         trade_date_before = get_preceding_weekday(reference_date)
         return trade_date_before.strftime("%Y-%m-%d")
@@ -103,8 +103,8 @@ class PolygonClient:
         await self._client.aclose()
 
 
-def get_preceding_weekday(a_date: date):
-    target_date = a_date - timedelta(days=1)
-    while target_date.weekday() > 4:
-        target_date -= timedelta(days=1)
-    return target_date
+def get_preceding_weekday(reference_date: date):
+    candidate = reference_date - timedelta(days=1)
+    while candidate.weekday() > 4:
+        candidate -= timedelta(days=1)
+    return candidate

@@ -2,6 +2,12 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+
+class HealthResponse(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"example": {"status": "ok"}})
+    status: Literal["ok", "degraded"]
+
+
 ErrorCode = Literal[
     "SYMBOL_NOT_FOUND",
     "INSUFFICIENT_FUNDS",
@@ -26,14 +32,14 @@ class ErrorResponse(BaseModel):
     )
 
 
-class PostStockRequest(BaseModel):
+class StockUpdateRequest(BaseModel):
     model_config = ConfigDict(json_schema_extra={"example": {"amount": 50}})
     amount: int = Field(
         description="Shares to add (positive) or remove (negative). Zero is a no-op."
     )
 
 
-class PostStockResponse(BaseModel):
+class StockUpdateResponse(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -44,7 +50,7 @@ class PostStockResponse(BaseModel):
     message: str
 
     @classmethod
-    def create_from(cls, symbol: str, amount: int) -> "PostStockResponse":
+    def create_from(cls, symbol: str, amount: int) -> "StockUpdateResponse":
         if amount == 0:
             return cls(
                 message=f"No changes were made to your {symbol.upper()} holdings."
@@ -73,7 +79,7 @@ class Performance(BaseModel):
     )
 
 
-class GetStockResponse(BaseModel):
+class StockDetailResponse(BaseModel):
     model_config = ConfigDict(
         serialize_by_alias=True,
         populate_by_name=True,

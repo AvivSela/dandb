@@ -18,7 +18,7 @@ class PerformanceDataParseError(Exception):
     pass
 
 
-_PERIOD_MAP = {
+_PERIOD_LABEL_TO_FIELD = {
     "5 Day": "period_5_day",
     "1 Month": "period_1_month",
     "3 Month": "period_3_month",
@@ -66,19 +66,19 @@ class MarketWatchScraper:
 
     async def scrape_performance_metrics(self, stock_symbol: str) -> PerformanceMetrics:
         logger.info("Scraping performance metrics for %s", stock_symbol)
-        request_text = await self._fetch_stock_page(stock_symbol)
+        page_html = await self._fetch_stock_page(stock_symbol)
         loop = asyncio.get_running_loop()
-        performance: dict = await loop.run_in_executor(
-            None, self._parse_performance_data, request_text
+        raw_metrics: dict = await loop.run_in_executor(
+            None, self._parse_performance_data, page_html
         )
 
         metrics = PerformanceMetrics(
-            **{field: performance[key] for key, field in _PERIOD_MAP.items()}
+            **{field: raw_metrics[key] for key, field in _PERIOD_LABEL_TO_FIELD.items()}
         )
         logger.info(
             "Scraped %d/%d periods for %s",
-            len(performance),
-            len(_PERIOD_MAP),
+            len(raw_metrics),
+            len(_PERIOD_LABEL_TO_FIELD),
             stock_symbol,
         )
         return metrics
@@ -93,7 +93,7 @@ class MarketWatchScraper:
             if label_cell is None:
                 continue
             text = label_cell.get_text(strip=True)
-            if text not in _PERIOD_MAP:
+            if text not in _PERIOD_LABEL_TO_FIELD:
                 continue
             value_cell = label_cell.find_next_sibling("td", class_="table__cell")
             if not value_cell:
@@ -108,7 +108,11 @@ class MarketWatchScraper:
             performance_data[text] = value_element.get_text(strip=True)
             logger.debug("Parsed %s: %s", text, performance_data[text])
 
-        missing = [period for period in _PERIOD_MAP if period not in performance_data]
+        missing = [
+            period
+            for period in _PERIOD_LABEL_TO_FIELD
+            if period not in performance_data
+        ]
         if missing:
             raise PerformanceDataParseError(f"Missing performance periods: {missing}")
         return performance_data

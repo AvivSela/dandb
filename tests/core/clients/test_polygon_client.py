@@ -100,25 +100,25 @@ async def test_caches_identical_calls():
 
 def test_calculate_trade_date_returns_day_before_given_date():
     # Tuesday → Monday
-    result = PolygonClient._calculate_trade_date_before_given_date(date(2024, 3, 5))
+    result = PolygonClient._to_last_trade_date(date(2024, 3, 5))
     assert result == "2024-03-04"
 
 
 def test_calculate_trade_date_skips_weekend_when_given_monday():
     # Monday → previous Friday
-    result = PolygonClient._calculate_trade_date_before_given_date(date(2024, 3, 4))
+    result = PolygonClient._to_last_trade_date(date(2024, 3, 4))
     assert result == "2024-03-01"
 
 
 def test_calculate_trade_date_skips_weekend_when_given_saturday():
     # Saturday → previous Friday
-    result = PolygonClient._calculate_trade_date_before_given_date(date(2024, 3, 2))
+    result = PolygonClient._to_last_trade_date(date(2024, 3, 2))
     assert result == "2024-03-01"
 
 
 def test_calculate_trade_date_skips_weekend_when_given_sunday():
     # Sunday → previous Friday
-    result = PolygonClient._calculate_trade_date_before_given_date(date(2024, 3, 3))
+    result = PolygonClient._to_last_trade_date(date(2024, 3, 3))
     assert result == "2024-03-01"
 
 

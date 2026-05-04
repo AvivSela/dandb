@@ -3,12 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path
 
 from app.api.v1.deps import get_stock_service
-from app.api.v1.mappers import map_domain_to_response
+from app.api.v1.mappers import map_stock_summary_to_detail_response
 from app.schemas.stock_schemas import (
     ErrorResponse,
-    GetStockResponse,
-    PostStockRequest,
-    PostStockResponse,
+    StockDetailResponse,
+    StockUpdateRequest,
+    StockUpdateResponse,
 )
 from app.services.stock_service import StockService
 
@@ -17,7 +17,7 @@ ShareSymbol = Annotated[str, Path(min_length=1, max_length=10)]
 router = APIRouter()
 
 
-def _error_response(description: str, error: str, message: str) -> dict:
+def _openapi_error_entry(description: str, error: str, message: str) -> dict:
     return {
         "model": ErrorResponse,
         "description": description,
@@ -32,25 +32,25 @@ def _error_response(description: str, error: str, message: str) -> dict:
     summary="Get stock summary",
     response_description="OHLC snapshot and performance metrics for the requested symbol",
     responses={
-        400: _error_response(
+        400: _openapi_error_entry(
             "Invalid stock symbol", "INVALID_REQUEST", "Invalid stock symbol provided."
         ),
-        404: _error_response(
+        404: _openapi_error_entry(
             "Symbol not found in market data",
             "SYMBOL_NOT_FOUND",
             "No market data found for the requested symbol.",
         ),
-        422: _error_response(
+        422: _openapi_error_entry(
             "Request validation failed",
             "VALIDATION_ERROR",
             "Request validation failed.",
         ),
-        500: _error_response(
+        500: _openapi_error_entry(
             "Market data service unavailable",
             "SERVICE_UNAVAILABLE",
             "Market data service is unavailable.",
         ),
-        502: _error_response(
+        502: _openapi_error_entry(
             "Upstream market data error",
             "MARKET_DATA_ERROR",
             "Market data service returned an error.",
@@ -59,10 +59,10 @@ def _error_response(description: str, error: str, message: str) -> dict:
 )
 async def get_stock(
     stock_symbol: ShareSymbol, service: StockService = Depends(get_stock_service)
-) -> GetStockResponse:
+) -> StockDetailResponse:
     symbol = stock_symbol.strip().upper()
     domain = await service.get_stock_summary(symbol)
-    return map_domain_to_response(domain)
+    return map_stock_summary_to_detail_response(domain)
 
 
 @router.post(
@@ -71,12 +71,12 @@ async def get_stock(
     summary="Modify Holding",
     response_description="Confirmation of the adjusted share amount for the requested symbol",
     responses={
-        400: _error_response(
+        400: _openapi_error_entry(
             "Insufficient shares to complete the deduction",
             "INSUFFICIENT_FUNDS",
             "Insufficient shares to complete deduction for AAPL.",
         ),
-        422: _error_response(
+        422: _openapi_error_entry(
             "Request validation failed",
             "VALIDATION_ERROR",
             "Request validation failed.",
@@ -85,9 +85,9 @@ async def get_stock(
 )
 async def post_stock(
     stock_symbol: ShareSymbol,
-    request: PostStockRequest,
+    request: StockUpdateRequest,
     service: StockService = Depends(get_stock_service),
-) -> PostStockResponse:
+) -> StockUpdateResponse:
     symbol = stock_symbol.strip().upper()
-    await service.post_stock_summary(symbol, request.amount)
-    return PostStockResponse.create_from(symbol, request.amount)
+    await service.update_holding(symbol, request.amount)
+    return StockUpdateResponse.create_from(symbol, request.amount)

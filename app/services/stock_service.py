@@ -28,7 +28,7 @@ class StockService:
             performance=metrics, daily_snapshot=daily_open_close, amount=amount or 0
         )
 
-    async def post_stock_summary(self, symbol: str, amount: int) -> None:
+    async def update_holding(self, symbol: str, amount: int) -> None:
         if amount == 0:
             return
 

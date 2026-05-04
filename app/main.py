@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.api.v1.api import api_router
+from app.api.v1.api import router
 from app.core.clients.polygon_client import (
     PolygonAPIError,
     PolygonAuthError,
@@ -23,7 +23,7 @@ from app.repositories.holdings_repository import (
     InsufficientFundsException,
     StockHoldingsRepository,
 )
-from app.schemas.stock_schemas import ErrorResponse
+from app.schemas.stock_schemas import ErrorResponse, HealthResponse
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ def get_application() -> FastAPI:
         openapi_url=f"{settings.API_V1_STR}/openapi.json",
     )
 
-    _app.include_router(api_router, prefix=settings.API_V1_STR)
+    _app.include_router(router, prefix=settings.API_V1_STR)
 
     # Subclasses must be registered before their base class
     _app.add_exception_handler(RequestValidationError, _validation_handler)
@@ -154,9 +154,15 @@ def get_application() -> FastAPI:
     _app.add_exception_handler(StockFetchError, _external_fetch_handler)
     _app.add_exception_handler(PerformanceDataParseError, _external_fetch_handler)
 
-    @_app.get("/health", tags=["health"])
-    async def health_check() -> dict[str, str]:
-        return {"status": "ok"}
+    @_app.get(
+        "/health",
+        tags=["health"],
+        summary="Service health check",
+        response_description="Service readiness status",
+    )
+    async def health_check(request: Request) -> HealthResponse:
+        ready = hasattr(request.app.state, "repository")
+        return HealthResponse(status="ok" if ready else "degraded")
 
     return _app
 

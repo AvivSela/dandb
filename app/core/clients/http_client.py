@@ -5,7 +5,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-_RETRY_STATUSES = {500, 502, 503}
+_RETRYABLE_STATUS_CODES = {500, 502, 503}
 _MAX_RETRIES = 3
 
 
@@ -40,7 +40,7 @@ class BaseHTTPClient:
             except HTTPStatusError as exc:
                 if (
                     exc.status_code is not None
-                    and exc.status_code not in _RETRY_STATUSES
+                    and exc.status_code not in _RETRYABLE_STATUS_CODES
                 ):
                     raise
                 if attempt < _MAX_RETRIES - 1:

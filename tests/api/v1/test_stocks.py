@@ -4,7 +4,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.v1.api import api_router
+from app.api.v1.api import router
 from app.api.v1.deps import get_stock_service
 from app.core.config import settings
 from app.schemas.domain_schema import (
@@ -44,14 +44,14 @@ def _make_domain() -> StockSummaryDomain:
 def mock_service() -> AsyncMock:
     svc = AsyncMock(spec=StockService)
     svc.get_stock_summary.return_value = _make_domain()
-    svc.post_stock_summary.return_value = None
+    svc.update_holding.return_value = None
     return svc
 
 
 @pytest.fixture
 def test_client(mock_service) -> TestClient:
     app = FastAPI()
-    app.include_router(api_router, prefix=settings.API_V1_STR)
+    app.include_router(router, prefix=settings.API_V1_STR)
     app.dependency_overrides[get_stock_service] = lambda: mock_service
 
     @app.get("/health")

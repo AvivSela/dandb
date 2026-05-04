@@ -71,7 +71,7 @@ async def test_retries_on_5xx_then_succeeds(mock_sleep, client):
 async def test_raises_after_max_retries_on_500(mock_sleep, client):
     client._client.get.return_value = _resp(500)
 
-    with pytest.raises(HTTPStatusError):
+    with pytest.raises(HTTPStatusError, match=r"failed after 3 attempts"):
         await client.get("http://example.com")
 
     assert client._client.get.call_count == 3
@@ -81,7 +81,7 @@ async def test_raises_after_max_retries_on_500(mock_sleep, client):
 async def test_does_not_retry_on_4xx(mock_sleep, client):
     client._client.get.return_value = _resp(404)
 
-    with pytest.raises(HTTPStatusError):
+    with pytest.raises(HTTPStatusError, match=r"failed on attempt 1 of 3: HTTP 404"):
         await client.get("http://example.com")
 
     assert client._client.get.call_count == 1

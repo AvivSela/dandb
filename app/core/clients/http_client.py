@@ -34,7 +34,9 @@ class BaseHTTPClient:
             ) from exc
 
     async def get(self, url: str) -> httpx.Response:
+        attempts_made = 0
         for attempt in range(_MAX_RETRIES):
+            attempts_made += 1
             try:
                 return await self._attempt_request(url)
             except HTTPStatusError as exc:
@@ -42,16 +44,19 @@ class BaseHTTPClient:
                     exc.status_code is not None
                     and exc.status_code not in _RETRYABLE_STATUS_CODES
                 ):
-                    raise
+                    raise HTTPStatusError(
+                        f"Request to {url} failed on attempt {attempts_made} of {_MAX_RETRIES}: HTTP {exc.status_code}",
+                        status_code=exc.status_code,
+                    ) from exc
                 if attempt < _MAX_RETRIES - 1:
                     logger.warning(
                         "Request to %s failed (attempt %d/%d), retrying...",
                         url,
-                        attempt + 1,
+                        attempts_made,
                         _MAX_RETRIES,
                     )
                     await asyncio.sleep(2**attempt)
-        raise HTTPStatusError(f"Request to {url} failed after {_MAX_RETRIES} attempts")
+        raise HTTPStatusError(f"Request to {url} failed after {attempts_made} attempts")
 
     async def aclose(self) -> None:
         await self._client.aclose()

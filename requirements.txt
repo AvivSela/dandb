@@ -8,3 +8,4 @@ pydantic-settings
 python-dotenv
 beautifulsoup4
 anyio
+tzdata

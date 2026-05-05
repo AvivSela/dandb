@@ -58,7 +58,8 @@ def _openapi_error_entry(description: str, error: str, message: str) -> dict:
     },
 )
 async def get_stock(
-        symbol: Annotated[str, Depends(normalize_symbol)], service: StockService = Depends(get_stock_service)
+    symbol: Annotated[str, Depends(normalize_symbol)],
+    service: StockService = Depends(get_stock_service),
 ) -> StockDetailResponse:
     domain = await service.get_stock_summary(symbol)
     return to_detail_response(domain)

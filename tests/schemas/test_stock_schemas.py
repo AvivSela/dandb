@@ -40,9 +40,7 @@ def test_post_stock_response_create_from_formats_message():
 
 
 def test_get_stock_response_serializes_field_aliases():
-    data = to_detail_response(_make_domain()).model_dump(
-        by_alias=True
-    )
+    data = to_detail_response(_make_domain()).model_dump(by_alias=True)
 
     assert "from" in data
     assert "open" in data

@@ -59,8 +59,8 @@ async def test_uses_yesterday_date_when_trade_date_is_none():
     mock_get = AsyncMock(return_value=_ok_response(VALID_PAYLOAD))
     client = _make_client(mock_get)
 
-    with patch("app.core.clients.polygon_client.date") as mock_date_cls:
-        mock_date_cls.today.return_value = date(2024, 3, 6)
+    with patch("app.core.clients.polygon_client.datetime") as mock_dt:
+        mock_dt.now.return_value.date.return_value = date(2024, 3, 6)
         await client.get_daily_open_close("YESTERDAY")
 
     url = mock_get.call_args[0][0]
@@ -126,8 +126,8 @@ async def test_uses_last_friday_when_trade_date_is_none_and_today_is_monday():
     mock_get = AsyncMock(return_value=_ok_response(VALID_PAYLOAD))
     client = _make_client(mock_get)
 
-    with patch("app.core.clients.polygon_client.date") as mock_date_cls:
-        mock_date_cls.today.return_value = date(2024, 3, 4)  # Monday
+    with patch("app.core.clients.polygon_client.datetime") as mock_dt:
+        mock_dt.now.return_value.date.return_value = date(2024, 3, 4)  # Monday
         await client.get_daily_open_close("WEEKEND")
 
     url = mock_get.call_args[0][0]

@@ -5,7 +5,11 @@ import pytest
 from fastapi.exceptions import RequestValidationError
 from httpx import ASGITransport, AsyncClient
 
-from app.core.clients.polygon_client import PolygonAPIError, PolygonAuthError, PolygonValidationError
+from app.core.clients.polygon_client import (
+    PolygonAPIError,
+    PolygonAuthError,
+    PolygonValidationError,
+)
 from app.core.clients.scraper import PerformanceDataParseError, StockFetchError
 from app.main import (
     _external_fetch_handler,
@@ -85,7 +89,9 @@ async def test_validation_handler_returns_422():
 
 @pytest.mark.asyncio
 async def test_health_returns_degraded_before_lifespan():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         response = await client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "degraded"
@@ -95,7 +101,9 @@ async def test_health_returns_degraded_before_lifespan():
 async def test_health_returns_ok_when_repository_ready():
     app.state.repository = object()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
             response = await client.get("/health")
         assert response.status_code == 200
         assert response.json()["status"] == "ok"

@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, Request, Path
+from fastapi import Depends, HTTPException, Path, Request
 
 from app.core.clients.polygon_client import PolygonClient
 from app.core.clients.scraper import MarketWatchScraper

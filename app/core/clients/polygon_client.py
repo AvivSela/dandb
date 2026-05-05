@@ -1,7 +1,7 @@
 import logging
-from datetime import date, timedelta
-from zoneinfo import ZoneInfo
+from datetime import date, datetime, timedelta
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 from anyio.functools import lru_cache
 from pydantic import SecretStr
@@ -60,7 +60,9 @@ class PolygonClient:
         trade_date = self._preceding_trade_date_str(trade_date)
         return await self._fetch_open_close_cached(stock_symbol, trade_date)
 
-    async def _fetch_open_close(self, stock_symbol: str, trade_date: str) -> DailyOpenClose:
+    async def _fetch_open_close(
+        self, stock_symbol: str, trade_date: str
+    ) -> DailyOpenClose:
         logger.debug("cache miss for %s %s", stock_symbol, trade_date)
         url = f"{self.BASE_URL}/v1/open-close/{quote(stock_symbol)}/{trade_date}"
 
@@ -93,7 +95,9 @@ class PolygonClient:
 
     @staticmethod
     def _preceding_trade_date_str(reference_date: date | None):
-        reference_date = reference_date or date.today(ZoneInfo("America/New_York"))
+        reference_date = (
+            reference_date or datetime.now(ZoneInfo("America/New_York")).date()
+        )
         trade_date_before = _last_weekday_before(reference_date)
         return trade_date_before.strftime("%Y-%m-%d")
 

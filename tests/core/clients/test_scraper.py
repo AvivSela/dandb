@@ -166,6 +166,7 @@ def _make_scraper(mock_get: AsyncMock) -> MarketWatchScraper:
 
 # --- _fetch_stock_page ---
 
+
 async def test_fetch_stock_page_returns_html():
     mock_response = MagicMock()
     mock_response.text = "<html>some content</html>"
@@ -177,13 +178,16 @@ async def test_fetch_stock_page_returns_html():
 
 
 async def test_fetch_stock_page_raises_stock_fetch_error_on_http_error():
-    scraper = _make_scraper(AsyncMock(side_effect=HTTPStatusError("HTTP 404", status_code=404)))
+    scraper = _make_scraper(
+        AsyncMock(side_effect=HTTPStatusError("HTTP 404", status_code=404))
+    )
 
     with pytest.raises(StockFetchError):
         await scraper._fetch_stock_page("AAPL")
 
 
 # --- scrape_performance_metrics ---
+
 
 async def test_scrape_performance_metrics_returns_metrics():
     scraper = MarketWatchScraper.__new__(MarketWatchScraper)
@@ -201,6 +205,7 @@ async def test_scrape_performance_metrics_returns_metrics():
 
 # --- _parse_performance_data warning branches ---
 
+
 def test_parse_missing_value_cell_raises_parse_error():
     # Row has a known period label but no sibling value cell → warning logged, period skipped
     with pytest.raises(PerformanceDataParseError):
@@ -215,6 +220,7 @@ def test_parse_missing_value_element_raises_parse_error():
 
 # --- context manager ---
 
+
 async def test_context_manager_enters_and_closes():
     client = MagicMock(spec=BaseHTTPClient)
     client.aclose = AsyncMock()
@@ -227,6 +233,7 @@ async def test_context_manager_enters_and_closes():
 
 
 # --- __init__ default client ---
+
 
 def test_init_creates_default_http_client_when_none_provided():
     scraper = MarketWatchScraper()

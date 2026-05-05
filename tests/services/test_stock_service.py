@@ -55,7 +55,9 @@ def mock_polygon() -> AsyncMock:
 @pytest.fixture
 def mock_scraper() -> AsyncMock:
     scraper = AsyncMock(spec=MarketWatchScraper)
-    scraper.scrape_performance_metrics_cached = AsyncMock(return_value=_make_performance_metrics())
+    scraper.scrape_performance_metrics_cached = AsyncMock(
+        return_value=_make_performance_metrics()
+    )
     return scraper
 
 

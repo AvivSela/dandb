@@ -17,6 +17,7 @@ from app.core.clients.scraper import (
     MarketWatchScraper,
     PerformanceDataParseError,
     StockFetchError,
+    StockSymbolNotFoundError,
 )
 from app.core.config import settings
 from app.repositories.holdings_repository import (
@@ -100,6 +101,19 @@ async def _validation_handler(
     )
 
 
+async def _stock_symbol_not_found_handler(
+    request: Request, exc: StockSymbolNotFoundError
+) -> JSONResponse:
+    logger.warning("Symbol not found on MarketWatch: %s", exc)
+    return JSONResponse(
+        status_code=fastapi.status.HTTP_404_NOT_FOUND,
+        content=ErrorResponse(
+            error="SYMBOL_NOT_FOUND",
+            message="No market data found for the requested symbol.",
+        ).model_dump(),
+    )
+
+
 async def _external_fetch_handler(
     request: Request, exc: StockFetchError | PerformanceDataParseError
 ) -> JSONResponse:
@@ -151,6 +165,7 @@ def get_application() -> FastAPI:
     _app.add_exception_handler(PolygonValidationError, _polygon_validation_handler)
     _app.add_exception_handler(PolygonAuthError, _polygon_auth_handler)
     _app.add_exception_handler(PolygonAPIError, _polygon_api_handler)
+    _app.add_exception_handler(StockSymbolNotFoundError, _stock_symbol_not_found_handler)
     _app.add_exception_handler(StockFetchError, _external_fetch_handler)
     _app.add_exception_handler(PerformanceDataParseError, _external_fetch_handler)
 

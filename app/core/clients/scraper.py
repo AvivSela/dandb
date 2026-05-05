@@ -16,6 +16,10 @@ class StockFetchError(Exception):
     pass
 
 
+class StockSymbolNotFoundError(Exception):
+    pass
+
+
 class PerformanceDataParseError(Exception):
     pass
 
@@ -61,6 +65,10 @@ class MarketWatchScraper:
         try:
             response = await self._client.get(url)
         except HTTPStatusError as e:
+            if e.status_code == 302:
+                raise StockSymbolNotFoundError(
+                    f"Symbol '{stock_symbol}' not found on MarketWatch"
+                ) from e
             raise StockFetchError(
                 f"Failed to fetch stock page for '{stock_symbol}': {e}"
             ) from e

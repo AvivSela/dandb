@@ -105,11 +105,12 @@ def test_parse_performance_data_raises_when_period_missing():
 
 
 async def test_scrape_raises_stock_fetch_error_on_http_failure():
-    scraper = MarketWatchScraper.__new__(MarketWatchScraper)
-    scraper._fetch_stock_page = AsyncMock(side_effect=StockFetchError("HTTP error"))
+    scraper = _make_scraper(
+        AsyncMock(side_effect=HTTPStatusError("HTTP 500", status_code=500))
+    )
 
     with pytest.raises(StockFetchError):
-        await scraper._scrape_performance_metrics("AAPL")
+        await scraper.scrape_performance_metrics_cached("AAPL")
 
 
 def test_parse_performance_data_ignores_extra_cells_from_other_tables():
@@ -190,10 +191,11 @@ async def test_fetch_stock_page_raises_stock_fetch_error_on_http_error():
 
 
 async def test_scrape_performance_metrics_returns_metrics():
-    scraper = MarketWatchScraper.__new__(MarketWatchScraper)
-    scraper._fetch_stock_page = AsyncMock(return_value=_FULL_HTML)
+    mock_response = MagicMock()
+    mock_response.text = _FULL_HTML
+    scraper = _make_scraper(AsyncMock(return_value=mock_response))
 
-    result = await scraper._scrape_performance_metrics("AAPL")
+    result = await scraper.scrape_performance_metrics_cached("AAPL")
 
     assert isinstance(result, PerformanceMetrics)
     assert result.period_5_day == "+1.00%"

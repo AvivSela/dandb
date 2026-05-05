@@ -1,5 +1,6 @@
 import logging
 from datetime import date, timedelta
+from zoneinfo import ZoneInfo
 from urllib.parse import quote
 
 from anyio.functools import lru_cache
@@ -92,7 +93,7 @@ class PolygonClient:
 
     @staticmethod
     def _preceding_trade_date_str(reference_date: date | None):
-        reference_date = reference_date or date.today()
+        reference_date = reference_date or date.today(ZoneInfo("America/New_York"))
         trade_date_before = _last_weekday_before(reference_date)
         return trade_date_before.strftime("%Y-%m-%d")
 

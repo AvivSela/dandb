@@ -55,7 +55,7 @@ def mock_polygon() -> AsyncMock:
 @pytest.fixture
 def mock_scraper() -> AsyncMock:
     scraper = AsyncMock(spec=MarketWatchScraper)
-    scraper.scrape_performance_metrics.return_value = _make_performance_metrics()
+    scraper.scrape_performance_metrics_cached = AsyncMock(return_value=_make_performance_metrics())
     return scraper
 
 
@@ -80,7 +80,7 @@ async def test_get_stock_summary_calls_clients_concurrently(
     await service.get_stock_summary("AAPL")
 
     mock_polygon.get_daily_open_close.assert_called_once()
-    mock_scraper.scrape_performance_metrics.assert_called_once()
+    mock_scraper.scrape_performance_metrics_cached.assert_called_once()
 
 
 async def test_update_holding_buy_calls_update_holding(service, mock_repo):

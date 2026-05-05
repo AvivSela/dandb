@@ -20,7 +20,7 @@ class StockService:
     async def get_stock_summary(self, symbol: str) -> StockSummaryDomain:
         daily_open_close, metrics, amount = await asyncio.gather(
             self.polygon_client.get_daily_open_close(symbol),
-            self.scraper.scrape_performance_metrics(symbol),
+            self.scraper.scrape_performance_metrics_cached(symbol),
             self.repository.get(symbol),
         )
 

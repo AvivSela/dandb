@@ -132,10 +132,11 @@ endpoints → services → repositories → models
 
 ### Pydantic v2
 - `model_config = ConfigDict(...)` — no legacy `class Config`
-- `Field(serialization_alias=...)` when JSON key differs from Python name (e.g. `"from"`, `"afterHours"`)
+- `Field(serialization_alias=...)` when only serialization needs the alias (e.g. `from_date → "from"`, `after_hours → "afterHours"` in `StockDetailResponse`)
+- `Field(alias=...)` with `populate_by_name=True` when the model must both parse from and serialize to camelCase keys (e.g. `Performance` — populated by alias in the mapper, serialized by alias in the response)
 - `json_schema_extra` with a realistic `"example"` block on response models
 - `serialize_by_alias=True` in `ConfigDict` when aliases are used
-- `PostStockResponse.create_from` is the established factory method for building responses from domain data
+- `StockUpdateResponse.build(symbol, amount)` is the established factory method for building responses from domain data
 
 ### Settings
 - All config lives in `app/core/config.py`; never read `os.environ` directly
@@ -148,15 +149,20 @@ endpoints → services → repositories → models
 - Never import clients or repositories directly inside endpoint functions
 
 ### Error Handling
-- Domain exceptions (`PolygonAPIError`, `StockFetchError`, etc.) bubble up; caught and re-raised as `HTTPException` **at the API layer only**
+- Domain exceptions bubble up; caught and mapped to `JSONResponse` with `ErrorResponse` **at the API layer only** (in `main.py` exception handlers, not via `HTTPException`)
 - Never expose raw external service messages to API consumers
 - Register handlers in `main.py` with `app.add_exception_handler(...)`; subclasses must be registered before their base class
+- Exception hierarchy to be aware of:
+  - `PolygonError` (base) → `PolygonAuthError`, `PolygonValidationError`, `PolygonAPIError` (has `.status_code`)
+  - `StockFetchError`, `PerformanceDataParseError` (both map to 502)
+  - `InsufficientFundsException` (has `.symbol`, maps to 400)
 
 ### HTTP Clients
 - All clients extend `BaseHTTPClient`; retry/backoff is already handled — don't duplicate it
 - Never hard-code `timeout` — always pass it through
 - Clients are async context managers; enter via `AsyncExitStack` in lifespan only; never create them inside request handlers
 - Do not store mutable state inside `BaseHTTPClient` or client subclasses (they are shared across requests)
+- `MarketWatchScraper._parse_performance_data` is CPU-bound (BeautifulSoup); it runs via `loop.run_in_executor` — keep it as a `@staticmethod`, never make it async or inline it into the async method
 
 ### Database
 - All SQLAlchemy code stays in `app/repositories/` and `app/models/`
@@ -168,8 +174,10 @@ endpoints → services → repositories → models
 ### Testing
 - Repository tests use `StockHoldingsRepository.create(":memory:")` — real DB, no mocks
 - HTTP client tests mock `BaseHTTPClient.get`
-- Service tests inject mock clients via `StockService.__init__`
+- Service tests inject mock clients via `StockService.__init__`; `PolygonClient` also accepts `http_client=` for lower-level mocking
 - Mapper tested independently from endpoints
+- `tests/conftest.py` sets `POLYGON_API_KEY=test-key` via `os.environ.setdefault` — new test files don't need to repeat this
+- `StockService` is instantiated per-request (no caching in `get_stock_service`)
 
 ### OpenAPI
 - Every endpoint must have `summary` and `response_description` in the decorator

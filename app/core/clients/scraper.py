@@ -2,6 +2,7 @@ import asyncio
 import logging
 from urllib.parse import quote
 
+from anyio.functools import lru_cache
 from bs4 import BeautifulSoup
 
 from app.core.clients.http_client import BaseHTTPClient, HTTPStatusError
@@ -50,6 +51,7 @@ class MarketWatchScraper:
             headers=request_headers or DEFAULT_REQUEST_HEADERS,
             timeout=timeout,
         )
+        self.scrape_performance_metrics_cached = lru_cache(maxsize=1024)(self._scrape_performance_metrics)
 
     async def _fetch_stock_page(self, stock_symbol: str) -> str:
         symbol = quote(stock_symbol, safe="")
@@ -64,7 +66,7 @@ class MarketWatchScraper:
         logger.debug("Received %d bytes for %s", len(response.text), stock_symbol)
         return response.text
 
-    async def scrape_performance_metrics(self, stock_symbol: str) -> PerformanceMetrics:
+    async def _scrape_performance_metrics(self, stock_symbol: str) -> PerformanceMetrics:
         logger.info("Scraping performance metrics for %s", stock_symbol)
         page_html = await self._fetch_stock_page(stock_symbol)
         loop = asyncio.get_running_loop()

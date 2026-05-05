@@ -109,7 +109,7 @@ async def test_scrape_raises_stock_fetch_error_on_http_failure():
     scraper._fetch_stock_page = AsyncMock(side_effect=StockFetchError("HTTP error"))
 
     with pytest.raises(StockFetchError):
-        await scraper.scrape_performance_metrics("AAPL")
+        await scraper._scrape_performance_metrics("AAPL")
 
 
 def test_parse_performance_data_ignores_extra_cells_from_other_tables():
@@ -189,7 +189,7 @@ async def test_scrape_performance_metrics_returns_metrics():
     scraper = MarketWatchScraper.__new__(MarketWatchScraper)
     scraper._fetch_stock_page = AsyncMock(return_value=_FULL_HTML)
 
-    result = await scraper.scrape_performance_metrics("AAPL")
+    result = await scraper._scrape_performance_metrics("AAPL")
 
     assert isinstance(result, PerformanceMetrics)
     assert result.period_5_day == "+1.00%"
